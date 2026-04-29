@@ -1,0 +1,5 @@
+heartbeat:
+  interval_minutes: 10
+  severity_threshold: 0.5
+  max_contexts_per_ai: 10
+  enabled: true
