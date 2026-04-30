@@ -3,6 +3,8 @@ import { loadRecentContexts } from './context-loader';
 import { extractBeliefs } from './belief-extractor';
 import { detectConflicts } from './conflict-detector';
 import { alertAndLog } from './alert-logger';
+import { detectPoisoning } from './skills/context-poisoning-detector';
+import { detectPersonaDrift } from './skills/persona-drift-detector';
 import * as fs from 'fs';
 import * as yaml from 'yaml';
 
@@ -74,15 +76,29 @@ async function runHeartbeatCycle(config: Config): Promise<void> {
     const conflicts = detectConflicts(allBeliefs, config.heartbeat.severity_threshold);
     console.log(`[HEARTBEAT] Found ${conflicts.length} conflicts.`);
 
-    // Step 4: Alert & Log
+    // Step 4: Alert & Log conflicts
     await alertAndLog(conflicts);
 
-    // Step 5: Log history
+    // Step 5: Detect context poisoning
+    const poisoningAlerts = await detectPoisoning();
+    if (poisoningAlerts.length > 0) {
+      console.warn(`[HEARTBEAT] ⚠️  Detected ${poisoningAlerts.length} potential poisoning risk(s)`);
+    }
+
+    // Step 6: Detect persona drift
+    const personaDrifts = await detectPersonaDrift();
+    if (personaDrifts.length > 0) {
+      console.warn(`[HEARTBEAT] 📊 Detected ${personaDrifts.length} persona drift(s)`);
+    }
+
+    // Step 7: Log history
     await logHistory({
       cycle_at: new Date().toISOString(),
       contexts_loaded: contexts.length,
       beliefs_extracted: allBeliefs.length,
       conflicts_found: conflicts.length,
+      poisoning_alerts: poisoningAlerts.length,
+      persona_drifts: personaDrifts.length,
       runtime_ms: Date.now() - startTime,
     });
 
@@ -98,6 +114,8 @@ async function logHistory(entry: {
   contexts_loaded: number;
   beliefs_extracted: number;
   conflicts_found: number;
+  poisoning_alerts: number;
+  persona_drifts: number;
   runtime_ms: number;
 }): Promise<void> {
   const historyPath = 'storage/heartbeat-history.yaml';

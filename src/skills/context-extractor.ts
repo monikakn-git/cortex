@@ -58,17 +58,17 @@ export interface ToolUsage {
 const EXTRACTION_PROMPT = `You are CORTEX's context extraction engine. Your task is to analyze AI conversations and extract structured signals that CORTEX can use to understand the user and their context.
 
 ## INPUT
-- AI Platform: {platform}
-- Conversation Date: {date}
+- AI Platform: [[PLATFORM]]
+- Conversation Date: [[DATE]]
 - Raw Conversation:
-```
-{conversation_text}
-```
+\`\`\`
+[[CONVERSATION_TEXT]]
+\`\`\`
 
 ## OUTPUT FORMAT
 Extract the following signal types. Return as valid JSON:
 
-{json_schema}
+[[JSON_SCHEMA]]
 
 ## SIGNAL DEFINITIONS
 
@@ -90,13 +90,13 @@ What the AI expressed about the user or project:
 What the user is trying to achieve:
 - short-term goals (this session)
 - long-term goals (project-level)
-- Include: goal, status (active/completed/pending)
+- Include: goal, status (active|completed|pending)
 
 ### constraints
 Hard or soft limits mentioned:
 - hard: must follow (local-only, no cloud)
 - soft: preferred but flexible
-- Include: type (hard/soft), description, source
+- Include: type (hard|soft), description, source
 
 ### life_state
 User's current context:
@@ -108,7 +108,7 @@ User's current context:
 Tools mentioned or recommended:
 - tool_name
 - usage_context (why/how used)
-- recommendation_strength (strong/weak)
+- recommendation_strength (strong|weak)
 
 ## EXTRACTION RULES
 1. Be conservative — only extract signals that are explicitly stated or strongly implied.
@@ -138,10 +138,10 @@ export function buildExtractionPrompt(
   date: string = new Date().toISOString()
 ): string {
   return EXTRACTION_PROMPT
-    .replace('{platform}', platform)
-    .replace('{date}', date)
-    .replace('{conversation_text}', conversationText)
-    .replace('{json_schema}', JSON_SCHEMA);
+    .replace('[[PLATFORM]]', platform)
+    .replace('[[DATE]]', date)
+    .replace('[[CONVERSATION_TEXT]]', conversationText)
+    .replace('[[JSON_SCHEMA]]', JSON_SCHEMA);
 }
 
 export function parseExtractedSignals(response: string): ExtractedSignals {

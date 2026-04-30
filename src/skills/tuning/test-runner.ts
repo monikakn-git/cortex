@@ -277,17 +277,17 @@ function simulateExtraction(conversation: string, platform: string): ExtractedSi
     signals.constraints.push({ type: 'hard', description: 'All data must stay local', source: 'user' });
   }
   
-  // Extract life state
+  // Extract life state (check specific keywords FIRST, then general)
   if (lower.includes('learn')) {
     signals.life_state.primary = 'learning';
-  } else if (lower.includes('build')) {
-    signals.life_state.primary = 'building';
   } else if (lower.includes('debug') || lower.includes('error')) {
     signals.life_state.primary = 'debugging';
   } else if (lower.includes('refactor')) {
     signals.life_state.primary = 'refactoring';
-  } else if (lower.includes('best') || lower.includes('recommend') || lower.includes('should i')) {
+  } else if ((lower.includes('what') || lower.includes('which')) && (lower.includes('best') || lower.includes('should'))) {
     signals.life_state.primary = 'researching';
+  } else if (lower.includes('build')) {
+    signals.life_state.primary = 'building';
   }
   
   // Extract tool usage
