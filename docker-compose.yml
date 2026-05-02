@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  cortex-agent:
+    build: .
+    container_name: cortex_agent
+    volumes:
+      - ./src:/app/src
+      - ./skills:/app/skills
+      - ./storage:/app/storage
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    command: ["npm", "run", "dev"]
