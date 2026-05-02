@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CORTEX</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      width: 300px;
+      min-height: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f0f1a;
+      color: #e0e0f0;
+      padding: 0 0 16px;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1a3e 0%, #0f0f1a 100%);
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo { font-size: 20px; }
+    .brand { font-size: 16px; font-weight: 600; letter-spacing: 0.05em; color: #a78bfa; }
+    .tagline { font-size: 10px; color: #6b7280; margin-top: 1px; }
+
+    /* Status pill */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 6px #4ade80;
+      flex-shrink: 0;
+    }
+    .status-dot.offline { background: #f87171; box-shadow: 0 0 6px #f87171; }
+    .status-dot.unknown { background: #fbbf24; box-shadow: 0 0 6px #fbbf24; }
+    .status-text { font-size: 12px; color: #9ca3af; }
+    .status-text span { color: #e0e0f0; font-weight: 500; }
+
+    /* Platform badge */
+    .platform-badge {
+      margin: 12px 16px 0;
+      background: rgba(167, 139, 250, 0.08);
+      border: 1px solid rgba(167, 139, 250, 0.2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #c4b5fd;
+      display: none;
+    }
+    .platform-badge.visible { display: block; }
+    .platform-badge strong { color: #a78bfa; }
+
+    /* Buttons */
+    .actions { padding: 14px 16px 0; display: flex; flex-direction: column; gap: 8px; }
+
+    .btn {
+      width: 100%;
+      padding: 9px 14px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover { opacity: 0.88; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-primary { background: #6d28d9; color: #fff; }
+    .btn-secondary { background: rgba(255,255,255,0.06); color: #d1d5db; border: 1px solid rgba(255,255,255,0.1); }
+    .btn-success  { background: #065f46; color: #6ee7b7; border: 1px solid #047857; }
+    .btn-danger   { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+
+    /* Divider */
+    .divider {
+      margin: 14px 16px 0;
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #4b5563;
+      padding: 12px 16px 4px;
+    }
+
+    /* Import file input (hidden, triggered by button) */
+    #import-file { display: none; }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 12px; left: 50%;
+      transform: translateX(-50%);
+      background: #1f2937;
+      color: #e0e0f0;
+      font-size: 12px;
+      padding: 7px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.08);
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity 0.25s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">⬡</div>
+    <div>
+      <div class="brand">CORTEX</div>
+      <div class="tagline">Universal AI Context Passport</div>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <div class="status-dot" id="server-dot"></div>
+    <div class="status-text" id="server-status">Checking backend…</div>
+  </div>
+
+  <div class="platform-badge" id="platform-badge"></div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="btn-inject">
+      ⬡ &nbsp;Inject Context Now
+    </button>
+    <button class="btn btn-secondary" id="btn-extract">
+      ↑ &nbsp;Extract Current Conversation
+    </button>
+  </div>
+
+  <hr class="divider" />
+  <div class="section-label">Context Will</div>
+
+  <div class="actions">
+    <button class="btn btn-success" id="btn-export">
+      ↓ &nbsp;Export Passport (.cortex.json)
+    </button>
+    <button class="btn btn-secondary" id="btn-import">
+      ↑ &nbsp;Import Passport
+    </button>
+    <input type="file" id="import-file" accept=".json,.cortex.json" />
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="src/popup.js" type="module"></script>
+</body>
+</html>
