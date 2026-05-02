@@ -1,0 +1,102 @@
+.app-shell {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+/* Booting Screen */
+.boot-screen {
+  height: 100vh;
+  width: 100vw;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-primary);
+}
+.boot-logo { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+.boot-spinner {
+  width: 40px; height: 40px; border: 3px solid rgba(124, 106, 255, 0.1);
+  border-top-color: var(--accent-primary); border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+.boot-text { font-size: 12px; font-weight: 700; letter-spacing: 0.2em; opacity: 0.8; }
+
+/* Layout Structure */
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: radial-gradient(circle at top right, rgba(124, 106, 255, 0.03), transparent);
+}
+
+.top-command-bar {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.header-left .breadcrumb {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12px; font-weight: 700;
+}
+.breadcrumb .root { color: var(--text-muted); letter-spacing: 0.1em; }
+.breadcrumb .divider { color: var(--border-subtle); }
+.breadcrumb .current { color: var(--text-primary); letter-spacing: 0.05em; }
+
+.global-search {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 16px; border-radius: 99px;
+  width: 320px; color: var(--text-muted);
+}
+.global-search input {
+  background: transparent; border: none; outline: none;
+  color: var(--text-primary); font-size: 13px; width: 100%;
+}
+
+.header-right { display: flex; align-items: center; gap: 16px; }
+.sys-status {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; font-weight: 800; color: var(--accent-secondary);
+  letter-spacing: 0.05em;
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent-secondary); }
+.status-dot.pulse { animation: pulse-glow 2s infinite; }
+
+.h-divider { width: 1px; height: 20px; background: var(--border-subtle); }
+.h-action-btn {
+  color: var(--text-muted); transition: color 0.2s;
+}
+.h-action-btn:hover { color: var(--text-primary); }
+
+.profile-pill {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 14px 6px 6px; border-radius: 99px;
+}
+.profile-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--accent-primary);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+}
+.profile-name { font-size: 12px; font-weight: 700; }
+
+/* Content Area */
+.page-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+.page-scroll-area {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}

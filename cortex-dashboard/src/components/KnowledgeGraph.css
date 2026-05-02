@@ -1,0 +1,105 @@
+.graph-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: var(--bg-main);
+  overflow: hidden;
+}
+
+.graph-container svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.links line {
+  stroke-opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(124, 106, 255, 0.8));
+}
+
+.electric-shock {
+  filter: blur(1.5px) drop-shadow(0 0 4px #fff);
+  animation: shock-pulse 0.6s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes shock-pulse {
+  0% {
+    stroke-dashoffset: 30;
+    opacity: 0.8;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.8;
+  }
+}
+
+.node-group {
+  cursor: pointer;
+  transition: opacity 0.3s;
+  animation: node-breathing 4s ease-in-out infinite;
+}
+
+@keyframes node-breathing {
+
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+
+  50% {
+    filter: brightness(1.2);
+  }
+}
+
+.node-group {
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.node-group:hover circle {
+  stroke-width: 3px;
+}
+
+.node-group text {
+  pointer-events: none;
+  font-weight: 500;
+}
+
+.graph-legend {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(4px);
+  border: 1px solid var(--border-subtle);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-item .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.legend-item .label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}

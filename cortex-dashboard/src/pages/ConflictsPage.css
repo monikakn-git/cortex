@@ -1,0 +1,31 @@
+.conflicts-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 20px 24px;
+  gap: 16px;
+  overflow: hidden;
+}
+.cflp-header { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.cflp-title-wrap { display: flex; align-items: center; gap: 12px; }
+.cflp-title { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.cflp-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.cflp-info {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 8px; font-size: 11px; color: var(--text-secondary);
+}
+
+.sev-legend {
+  display: flex; gap: 16px; flex-shrink: 0;
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+.sev-legend-item { display: flex; align-items: center; gap: 8px; }
+.sev-pip { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sev-name { font-size: 11px; font-weight: 700; text-transform: capitalize; }
+.sev-desc { font-size: 11px; color: var(--text-muted); }
+
+.cflp-body { display: flex; flex-direction: column; gap: 12px; flex: 1; overflow: hidden; }
+.cflp-resolver-wrap { flex: 1; overflow: hidden; }

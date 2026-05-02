@@ -1,0 +1,126 @@
+.coverage-panel {
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  overflow: hidden;
+}
+.cp-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+/* AI Tabs */
+.ai-tabs {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.ai-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 11px;
+  transition: all 0.2s;
+}
+.ai-tab:hover { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
+.ai-tab.active {
+  background: rgba(124,106,255,0.12);
+  border-color: rgba(124,106,255,0.4);
+  color: var(--ai-color);
+}
+.ai-tab-name { font-weight: 600; }
+.ai-tab-pct  { font-size: 10px; font-weight: 700; }
+
+/* Coverage bar */
+.cov-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.cov-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.cov-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+.cov-pct-label { font-size: 11px; font-weight: 700; flex-shrink: 0; }
+
+/* Columns */
+.cov-columns {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+  overflow: hidden;
+}
+.cov-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+.cov-col-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+.cov-col-header.has { color: #4ade80; }
+.cov-col-header.missing { color: #ff4d6a; }
+
+.cov-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.cov-node-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  border: 1px solid transparent;
+}
+.cov-node-chip.has {
+  background: rgba(74,222,128,0.05);
+  border-color: rgba(74,222,128,0.12);
+  color: var(--text-secondary);
+}
+.cov-node-chip.missing {
+  background: rgba(255,77,106,0.05);
+  border-color: rgba(255,77,106,0.12);
+  color: var(--text-muted);
+}
+.chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.chip-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

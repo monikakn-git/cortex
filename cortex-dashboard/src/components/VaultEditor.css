@@ -1,0 +1,104 @@
+.vault-editor {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-info h2 { font-size: 24px; font-weight: 800; color: var(--text-primary); }
+.header-info p { color: var(--text-muted); font-size: 14px; }
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.editor-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+  overflow: hidden;
+}
+
+.validation-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.status { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+.status.success { color: var(--accent-secondary); }
+.status.error { color: var(--accent-danger); }
+
+.editor-wrapper {
+  display: flex;
+  flex: 1;
+}
+
+.line-nums {
+  padding: 20px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-right: 1px solid var(--border-subtle);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: right;
+  user-select: none;
+}
+
+.line-nums div { line-height: 1.6; }
+
+.yaml-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  resize: none;
+  padding: 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  outline: none;
+}
+
+.btn-primary, .btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover { background: #6a56ff; transform: translateY(-2px); }
+.btn-primary.success { background: var(--accent-secondary); }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.btn-secondary:hover { background: var(--bg-hover); color: var(--text-primary); }
