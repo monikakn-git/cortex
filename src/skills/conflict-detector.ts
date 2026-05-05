@@ -204,45 +204,32 @@ function generateConflictId(): string {
 }
 
 // LLM-based detection prompt (for complex cases)
-export const LLM_CONFLICT_PROMPT = `You are CORTEX's conflict detection engine. Your task is to identify contradictions between beliefs expressed by different AI platforms.
-
-## INPUT
-Beliefs to analyze:
-{beliefs_json}
-
-## OUTPUT FORMAT
-Return as valid JSON:
-```json
-{
-  "conflicts": [
-    {
-      "id": "conflict-001",
-      "topic": "",
-      "beliefs": [
-        { "ai": "", "statement": "", "confidence": 0.0 }
-      ],
-      "severity": 0.0,
-      "type": "technology|approach|constraint|priority|tool",
-      "explanation": ""
-    }
-  ]
-}
-```
-
-## CONFLICT TYPES
-- technology: Disagreement about tools/frameworks
-- approach: Disagreement about methodology
-- constraint: Opposing constraints
-- priority: Different priorities
-- tool: Different tool recommendations
-
-## DETECTION RULES
-1. Only compare beliefs on the same topic
-2. Compare beliefs from different AI platforms
-3. Must be clear opposition, not just different opinions
-4. Severity: average confidence * 1.2 (if different AIs), cap at 1.0
-
-Return ONLY the JSON output.`;
+export const LLM_CONFLICT_PROMPT = [
+  'You are CORTEX\'s conflict detection engine. Your task is to identify contradictions between beliefs expressed by different AI platforms.',
+  '',
+  '## INPUT',
+  'Beliefs to analyze:',
+  '{beliefs_json}',
+  '',
+  '## OUTPUT FORMAT',
+  'Return as valid JSON:',
+  '{"conflicts": [{"id": "conflict-001", "topic": "", "beliefs": [{"ai": "", "statement": "", "confidence": 0.0}], "severity": 0.0, "type": "technology|approach|constraint|priority|tool", "explanation": ""}]}',
+  '',
+  '## CONFLICT TYPES',
+  '- technology: Disagreement about tools/frameworks',
+  '- approach: Disagreement about methodology',
+  '- constraint: Opposing constraints',
+  '- priority: Different priorities',
+  '- tool: Different tool recommendations',
+  '',
+  '## DETECTION RULES',
+  '1. Only compare beliefs on the same topic',
+  '2. Compare beliefs from different AI platforms',
+  '3. Must be clear opposition, not just different opinions',
+  '4. Severity: average confidence * 1.2 (if different AIs), cap at 1.0',
+  '',
+  'Return ONLY the JSON output.',
+].join('\n');
 
 // LLM-based detection (for more complex cases)
 export async function detectConflictsWithLLM(beliefs: Belief[]): Promise<Conflict[]> {
