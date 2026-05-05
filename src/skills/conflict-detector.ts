@@ -141,10 +141,10 @@ function hasSemanticContradiction(stmtA: string, stmtB: string): boolean {
 function isDirectOpposition(stmtA: string, stmtB: string): boolean {
   // Check for direct negation patterns
   const negationPatterns = [
-    [/use\s+(\w+)/i, /don't use\s+\1/i],
-    [/prefer\s+(\w+)/i, /avoid\s+\1/i],
+    [/use\s+(\w+)/i, /don't use\s+(\w+)/i],
+    [/prefer\s+(\w+)/i, /avoid\s+(\w+)/i],
     [/should use/i, /should not use/i],
-    [/recommend\s+(\w+)/i, /don't recommend\s+\1/i],
+    [/recommend\s+(\w+)/i, /don't recommend\s+(\w+)/i],
   ];
   
   for (const [patternA, patternB] of negationPatterns) {

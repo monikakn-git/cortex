@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 router.get('/:action', async (req, res) => {
   try {
     const { action } = req.params;
-    const logs = await TestLog.find({ action }).sort({ timestamp: -1 }).limit(50);
+    const logs = await TestLog.find({ action } as any).sort({ timestamp: -1 }).limit(50);
     res.json(logs);
   } catch (error) {
     console.error(`Error fetching logs for action ${req.params.action}:`, error);

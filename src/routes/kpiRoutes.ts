@@ -18,7 +18,7 @@ router.get('/', async (req, res) => {
 router.get('/:metricName', async (req, res) => {
   try {
     const { metricName } = req.params;
-    const kpis = await KpiResult.find({ metricName }).sort({ timestamp: -1 });
+    const kpis = await KpiResult.find({ metricName } as any).sort({ timestamp: -1 });
     res.json(kpis);
   } catch (error) {
     console.error(`Error fetching KPI ${req.params.metricName}:`, error);
