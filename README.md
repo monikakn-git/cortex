@@ -298,7 +298,7 @@ cortex/
 | Component | Platform | URL |
 |-----------|----------|-----|
 | Backend API | Render | https://cortex-backend-42aq.onrender.com |
-| Frontend Dashboard | Vercel | *(your Vercel URL)* |
+| Frontend Dashboard | Vercel | https://cortex-two-ebon.vercel.app/ |
 
 ---
 
