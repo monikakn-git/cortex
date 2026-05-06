@@ -1,5 +1,28 @@
+# Dependencies
 node_modules/
+cortex-dashboard/node_modules/
+cortex-extension/node_modules/
+
+# Build output
 dist/
+cortex-dashboard/dist/
+
+# Environment secrets
 .env
+.env.local
+.env.production
+
+# Logs
 *.log
-storage/
+npm-debug.log*
+
+# Local YAML vaults (auto-generated at runtime)
+storage/*.yaml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/

@@ -7,7 +7,7 @@
     "dev": "ts-node src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "jest",
+    "test": "jest --runInBand",
     "test:kpi": "ts-node tests/integration/kpi-runner.ts"
   },
   "author": "OpenClaw Agent Engineer",

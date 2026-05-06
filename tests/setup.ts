@@ -1,14 +1,11 @@
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import { connectDB, disconnectDB } from '../src/db/mongoose';
+import * as fs from 'fs';
 
-dotenv.config();
-
-beforeAll(async () => {
-  await connectDB();
+// Ensure storage directory exists for tests
+beforeAll(() => {
+  fs.mkdirSync('storage', { recursive: true });
+  fs.mkdirSync('config', { recursive: true });
 });
 
-afterAll(async () => {
-  await mongoose.connection.dropDatabase(); // Clean up test database
-  await disconnectDB();
-});
+// Note: DB tests (vault.test.ts, conflict.test.ts) require MongoDB.
+// Logic-only tests (extraction, injection, conflict-detection, poisoning, persona-drift)
+// run without a database connection.
