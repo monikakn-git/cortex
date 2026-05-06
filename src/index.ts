@@ -1,10 +1,15 @@
 // Entry point for CORTEX OpenClaw backend
 import express from 'express';
 import cors from 'cors';
+import * as fs from 'fs';
 import { connectDB } from './db/mongoose';
 import { startHeartbeat } from './heartbeat';
 import kpiRoutes from './routes/kpiRoutes';
 import logRoutes from './routes/logRoutes';
+
+// Ensure required directories exist (Render doesn't persist them)
+fs.mkdirSync('storage', { recursive: true });
+fs.mkdirSync('config', { recursive: true });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
