@@ -54,29 +54,51 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
 
     // Simulation
     const sim = d3.forceSimulation(nodeData)
-      .force('link', d3.forceLink(linkData).id(d => d.id).distance(120).strength(1))
-      .force('charge', d3.forceManyBody().strength(-500))
+      .force('link', d3.forceLink(linkData).id(d => d.id).distance(140).strength(0.8))
+      .force('charge', d3.forceManyBody().strength(-600))
       .force('center', d3.forceCenter(W / 2, H / 2))
-      .force('collide', d3.forceCollide(50))
+      .force('collide', d3.forceCollide(60))
       .alphaTarget(0.02);
+
+    // Focusing Function (Reset to Center / Identity)
+    const focusOnIdentity = () => {
+      const identityNode = nodeData.find(n => n.id === 'john_doe');
+      if (!identityNode) return;
+      
+      const scale = 1.2;
+      const x = W / 2 - identityNode.x * scale;
+      const y = H / 2 - identityNode.y * scale;
+
+      svg.transition().duration(1000).ease(d3.easeCubicInOut)
+        .call(zoom.transform, d3.zoomIdentity.translate(x, y).scale(scale));
+    };
+
+    // Global Key Listener
+    const handleKeyDown = (e) => {
+      if (e.key.toLowerCase() === 'f') {
+        focusOnIdentity();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
 
     // 1. Links (Bottom layer)
     const link = g.append('g')
       .selectAll('line')
       .data(linkData)
       .join('line')
-      .attr('stroke', 'rgba(124, 106, 255, 0.4)')
-      .attr('stroke-width', 2);
+      .attr('stroke', 'rgba(124, 106, 255, 0.25)')
+      .attr('stroke-width', 1.5);
 
     // 2. Electric Shocks
     const flow = g.append('g')
       .selectAll('line')
       .data(linkData)
       .join('line')
-      .attr('stroke', '#fff')
-      .attr('stroke-width', 2.5)
+      .attr('stroke', '#7c6aff')
+      .attr('stroke-width', 2)
       .attr('stroke-dasharray', '8, 12')
-      .attr('class', 'electric-shock');
+      .attr('class', 'electric-shock')
+      .style('opacity', 0.6);
 
     // 3. Nodes (Top layer)
     const node = g.append('g')
@@ -85,6 +107,26 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       .join('g')
       .attr('class', 'node-group')
       .on('click', (e, d) => onNodeClick(d))
+      .on('mouseenter', (e, d) => {
+        d3.select(e.currentTarget).select('.node-circle')
+          .transition().duration(200)
+          .attr('r', d.id === 'john_doe' ? 30 : 22)
+          .attr('stroke-width', 5);
+        d3.select(e.currentTarget).select('.node-label')
+          .transition().duration(200)
+          .attr('font-size', '14px')
+          .attr('fill', '#a78bfa');
+      })
+      .on('mouseleave', (e, d) => {
+        d3.select(e.currentTarget).select('.node-circle')
+          .transition().duration(200)
+          .attr('r', d.id === 'john_doe' ? 24 : 18)
+          .attr('stroke-width', 3);
+        d3.select(e.currentTarget).select('.node-label')
+          .transition().duration(200)
+          .attr('font-size', '12px')
+          .attr('fill', '#fff');
+      })
       .call(d3.drag()
         .on('start', (e, d) => {
           if (!e.active) sim.alphaTarget(0.3).restart();
@@ -100,26 +142,37 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       );
 
     node.append('circle')
+      .attr('class', 'node-circle')
       .attr('r', d => (d.id === 'john_doe' ? 24 : 18))
       .attr('fill', '#0a0a0f')
       .attr('stroke', d => categoryColors[d.category] || '#7c6aff')
       .attr('stroke-width', 3)
       .attr('filter', d => `url(#glow-${d.category.toLowerCase()})`);
 
+    // Heartbeat Pulse for Identity
+    node.filter(d => d.id === 'john_doe')
+      .append('circle')
+      .attr('r', 24)
+      .attr('fill', 'none')
+      .attr('stroke', categoryColors.identity)
+      .attr('stroke-width', 1)
+      .attr('class', 'pulse-circle');
+
     node.append('circle')
-      .attr('r', 8)
+      .attr('r', d => (d.id === 'john_doe' ? 10 : 8))
       .attr('fill', d => categoryColors[d.category] || '#7c6aff');
 
     node.append('text')
-      .attr('dy', 40)
+      .attr('class', 'node-label')
+      .attr('dy', 45)
       .attr('text-anchor', 'middle')
       .attr('font-size', '12px')
       .attr('font-weight', '700')
       .attr('fill', '#fff')
+      .style('pointer-events', 'none')
       .style('text-shadow', '0 2px 4px #000')
       .text(d => d.label);
 
-    // IMPORTANT: Sync nodes and links on every tick
     sim.on('tick', () => {
       link
         .attr('x1', d => d.source.x)
@@ -137,7 +190,10 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
         .attr('transform', d => `translate(${d.x},${d.y})`);
     });
 
-    return () => sim.stop();
+    return () => {
+      sim.stop();
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [nodes, edges]);
 
   return (

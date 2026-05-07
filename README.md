@@ -284,12 +284,26 @@ cortex/
 
 ---
 
-## The 4 WOW Moments
+## ✨ New in v2.0 (Hackathon Polish)
 
-1. **🔀 Cross-AI Context Injection** — Paste a CORTEX briefing into Claude, then ask Gemini the same question — both already know your project, preferences, and constraints
-2. **⚔️ Live Conflict Detection** — Claude says "Use Kubernetes", ChatGPT says "Avoid Kubernetes" — CORTEX catches it instantly
-3. **🧪 Health Score Drop** — Inject a wrong belief 3+ times across AI sessions — CORTEX's poisoning detector flags it and your context health score visibly drops
-4. **📦 Context Passport Export** — Export your full SOUL.yaml (Context Will) and import it into any new AI session instantly
+We’ve overhauled CORTEX for a high-fidelity production demo experience:
+
+- 🌌 **Cosmic Pro Dashboard**: A complete UI/UX redesign with a Deep Royal Slate theme, animated nebula backgrounds, and drifting glass orbs.
+- 🕸️ **Cognitive Topology**: An interactive D3-powered Knowledge Graph that visualizes your context vault as a living network.
+- 🆔 **Persistent Identity**: Custom persona management with in-place editing. Set your name once, and it becomes the anchor of your AI ecosystem.
+- 🔄 **Selective Context Recall**: Choose specific past conversations from your history and inject them into new sessions via the browser extension.
+- 🎯 **Intelligent Naming**: Real-time sync between your AI chat titles (e.g., ChatGPT sidebar names) and your knowledge nodes.
+- ⚡ **"F" Key Focus**: Instant, smooth zoom-to-identity in the graph for rapid context inspection.
+
+---
+
+## The 5 WOW Moments
+
+1. **🔀 Cross-AI Context Injection** — Paste a CORTEX briefing into Claude, then ask Gemini the same question — both already know your project, preferences, and constraints.
+2. **🕸️ Cognitive Topology Navigation** — See your entire digital soul visualized as a living graph. Press `F` to focus on your identity.
+3. **⚔️ Live Conflict Detection** — Claude says "Use Kubernetes", ChatGPT says "Avoid Kubernetes" — CORTEX catches it instantly.
+4. **🧠 Selective History Injection** — Pick a conversation from last week and "Load" its context into your current GPT session instantly.
+5. **📦 Context Passport Export** — Export your full `soul.yaml` and import it into any new AI session instantly.
 
 ---
 

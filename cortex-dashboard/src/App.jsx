@@ -5,6 +5,7 @@ import GraphPage from './pages/GraphPage';
 import ConflictsPage from './pages/ConflictsPage';
 import CoveragePage from './pages/CoveragePage';
 import VaultPage from './pages/VaultPage';
+import ConversationsPage from './pages/ConversationsPage';
 import { Search, Bell, Settings, Power, User } from 'lucide-react';
 import './App.css';
 
@@ -13,6 +14,7 @@ const PAGES = {
   graph:     GraphPage,
   conflicts: ConflictsPage,
   coverage:  CoveragePage,
+  conversations: ConversationsPage,
   vault:     VaultPage,
 };
 

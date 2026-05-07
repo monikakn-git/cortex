@@ -1,33 +1,14 @@
 import { useState, useEffect } from 'react';
 import { FileCode2, Save, RotateCcw, CheckCircle, AlertCircle } from 'lucide-react';
 import jsYaml from 'js-yaml';
+import { api } from '../services/api';
 import './VaultEditor.css';
 
 const DEFAULT_YAML = `# CORTEX Context Vault
-# Edit your context facts below and click Save
+# No soul.yaml found in storage. Start editing to create one.
 
 identity:
-  name: "John Doe"
-  age: 28
-  location: "New York City, NY"
-  pronouns: "he/him"
-
-profession:
-  title: "Software Engineer"
-  specialization: "React Developer"
-  experience_years: 5
-
-skills:
-  - D3.js
-  - React
-  - Python
-  - System Design
-  - Machine Learning
-
-preferences:
-  theme: dark
-  editor: vim
-  work_style: remote
+  name: "New Agent"
 `;
 
 export default function VaultEditor() {
@@ -35,6 +16,17 @@ export default function VaultEditor() {
   const [parseError, setParseError] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  // Load real data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      const vault = await api.getVault();
+      if (vault && vault.soul) {
+        setYaml(jsYaml.dump(vault.soul));
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
     try {
@@ -48,11 +40,15 @@ export default function VaultEditor() {
   const handleSave = async () => {
     if (parseError) return;
     setIsSaving(true);
-    // Mock save
-    await new Promise(r => setTimeout(r, 1000));
+    
+    const parsedData = jsYaml.load(yaml);
+    const success = await api.saveVault({ soul: parsedData });
+    
     setIsSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (success) {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
   };
 
   return (

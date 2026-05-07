@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import KnowledgeGraph from '../components/KnowledgeGraph';
 import NodeDetail from '../components/NodeDetail';
-import { mockVault } from '../data/mockData';
+import { api } from '../services/api';
 import { BrainCircuit, Filter, Search, RotateCcw } from 'lucide-react';
 import './GraphPage.css';
 
@@ -12,8 +12,65 @@ export default function GraphPage() {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [showConflicts, setShowConflicts] = useState(false);
+  const [vaultData, setVaultData] = useState({ nodes: [], edges: [] });
 
-  const filteredNodes = mockVault.nodes.filter(n => {
+  useEffect(() => {
+    const loadRealData = async () => {
+      const [vault, conversations] = await Promise.all([
+        api.getVault(),
+        api.getConversations()
+      ]);
+
+      const nodes = [];
+      const edges = [];
+
+      // 1. Add Conversation Nodes
+      (conversations || []).forEach(c => {
+        nodes.push({
+          id: c.id,
+          label: c.title || `${c.platform.toUpperCase()} Chat`,
+          category: 'context',
+          ai: [c.platform],
+          conflict: false,
+          detail: c.preview
+        });
+      });
+
+      // 2. Add Signal Nodes from Vault
+      if (vault) {
+        Object.entries(vault).forEach(([key, data]) => {
+          if (key.endsWith('-contexts') && data.contexts) {
+            data.contexts.forEach((ctx, ctxIdx) => {
+              const platform = key.split('-')[0];
+              const conv = (conversations || []).find(c => 
+                Math.abs(new Date(c.extracted_at).getTime() - new Date(ctx.extracted_at).getTime()) < 5000
+              );
+
+              if (ctx.signals.preferences) {
+                ctx.signals.preferences.forEach((p, i) => {
+                  const nodeId = `${platform}_pref_${ctxIdx}_${i}`;
+                  nodes.push({ id: nodeId, label: p.value, category: 'preference', ai: [platform], detail: p.key });
+                  if (conv) edges.push({ source: conv.id, target: nodeId });
+                });
+              }
+              if (ctx.signals.goals) {
+                ctx.signals.goals.forEach((g, i) => {
+                  const nodeId = `${platform}_goal_${ctxIdx}_${i}`;
+                  nodes.push({ id: nodeId, label: g.goal, category: 'project', ai: [platform], detail: g.status });
+                  if (conv) edges.push({ source: conv.id, target: nodeId });
+                });
+              }
+            });
+          }
+        });
+      }
+
+      setVaultData({ nodes, edges });
+    };
+    loadRealData();
+  }, []);
+
+  const filteredNodes = vaultData.nodes.filter(n => {
     if (filter !== 'all' && n.category !== filter) return false;
     if (showConflicts && !n.conflict) return false;
     if (search && !n.label.toLowerCase().includes(search.toLowerCase())) return false;
@@ -21,7 +78,7 @@ export default function GraphPage() {
   });
 
   const filteredIds = new Set(filteredNodes.map(n => n.id));
-  const filteredEdges = mockVault.edges.filter(e =>
+  const filteredEdges = vaultData.edges.filter(e =>
     filteredIds.has(e.source) && filteredIds.has(e.target)
   );
 

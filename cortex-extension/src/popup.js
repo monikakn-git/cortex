@@ -1,7 +1,7 @@
 // popup.js — CORTEX Popup (no ES module imports)
 
-const BASE_URL = "http://localhost:5000";
-const TIMEOUT_MS = 3000;
+const BASE_URL = "http://localhost:5001";
+const TIMEOUT_MS = 10000;
 
 async function fetchWithTimeout(url, options = {}) {
   const controller = new AbortController();
@@ -50,6 +50,7 @@ const btnExtract    = document.getElementById("btn-extract");
 const btnExport     = document.getElementById("btn-export");
 const btnImport     = document.getElementById("btn-import");
 const importFile    = document.getElementById("import-file");
+const storedList    = document.getElementById("stored-list");
 const toast         = document.getElementById("toast");
 
 let currentPlatformId = null;
@@ -57,13 +58,14 @@ let currentTab = null;
 
 async function init() {
   await Promise.all([checkBackend(), checkCurrentTab()]);
+  loadStoredContexts();
 }
 
 async function checkBackend() {
   const alive = await checkHealth();
   if (alive) {
     serverDot.className = "status-dot";
-    serverStatus.innerHTML = `Backend <span>online</span> · localhost:5000`;
+    serverStatus.innerHTML = `Backend <span>online</span> · localhost:5001`;
   } else {
     serverDot.className = "status-dot offline";
     serverStatus.innerHTML = `Backend <span style="color:#f87171">offline</span> — run npm run dev`;
@@ -86,24 +88,100 @@ async function checkCurrentTab() {
   }
 }
 
+async function loadStoredContexts() {
+  try {
+    const res = await fetchWithTimeout(`${BASE_URL}/api/conversations`);
+    if (!res || !res.ok) throw new Error();
+    const data = await res.json();
+    const conversations = data.conversations || [];
+
+    if (conversations.length === 0) {
+      storedList.innerHTML = '<div style="padding: 10px; font-size: 11px; color: #4b5563; text-align: center;">No saved chats yet</div>';
+      return;
+    }
+
+    storedList.innerHTML = conversations.map(c => `
+      <div class="stored-item">
+        <div class="stored-item-header">
+          <span class="stored-platform">${c.platform}</span>
+          <span class="stored-date">${new Date(c.extracted_at).toLocaleDateString()}</span>
+          <button class="btn-load" data-id="${c.id}">Load</button>
+        </div>
+        <div class="stored-preview">${c.preview}</div>
+      </div>
+    `).join("");
+
+    // Add click listeners to load buttons
+    document.querySelectorAll(".btn-load").forEach(btn => {
+      btn.addEventListener("click", (e) => injectSelectedContext(e.target.dataset.id));
+    });
+
+  } catch (err) {
+    storedList.innerHTML = '<div style="padding: 10px; font-size: 11px; color: #f87171; text-align: center;">Failed to load chats</div>';
+  }
+}
+
+async function injectSelectedContext(id) {
+  if (!currentTab) return;
+  const btn = document.querySelector(`.btn-load[data-id="${id}"]`);
+  const originalText = btn.textContent;
+  btn.textContent = "Loading...";
+  btn.disabled = true;
+
+  try {
+    const res = await fetchWithTimeout(`${BASE_URL}/inject-conversation/${id}`);
+    if (!res || !res.ok) throw new Error();
+    const data = await res.json();
+
+    await chrome.tabs.sendMessage(currentTab.id, { 
+      type: "CORTEX_INJECT", 
+      briefing: data.briefing 
+    });
+    showToast("✓ Context loaded into chat!");
+  } catch (err) {
+    showToast("⚠ Could not load context");
+  } finally {
+    btn.textContent = originalText;
+    btn.disabled = false;
+  }
+}
+
 btnInject.addEventListener("click", async () => {
   if (!currentPlatformId || !currentTab) return;
   btnInject.disabled = true; btnInject.textContent = "Injecting…";
   try {
     await chrome.tabs.sendMessage(currentTab.id, { type: "CORTEX_INJECT", platformId: currentPlatformId });
-    showToast("✓ Context injected!");
+    showToast("✓ Global context injected!");
   } catch { showToast("⚠ Injection failed — refresh the page"); }
-  btnInject.textContent = "⬡  Inject Context Now"; btnInject.disabled = false;
+  btnInject.textContent = "⬡  Inject Global Context"; btnInject.disabled = false;
 });
 
 btnExtract.addEventListener("click", async () => {
   if (!currentPlatformId || !currentTab) return;
-  btnExtract.disabled = true; btnExtract.textContent = "Extracting…";
+  
+  btnExtract.disabled = true;
+  const originalText = btnExtract.innerHTML;
+  btnExtract.innerHTML = '<span class="spin">↻</span> Extracting...';
+
   try {
-    await chrome.tabs.sendMessage(currentTab.id, { type: "CORTEX_EXTRACT", platformId: currentPlatformId });
-    showToast("✓ Conversation extracted!");
-  } catch { showToast("⚠ Extraction failed"); }
-  btnExtract.textContent = "↑  Extract Current Conversation"; btnExtract.disabled = false;
+    const response = await chrome.tabs.sendMessage(currentTab.id, { 
+      type: "CORTEX_EXTRACT", 
+      platformId: currentPlatformId 
+    });
+
+    if (response && response.ok) {
+      showToast(`✓ Extracted ${response.count} messages!`);
+      loadStoredContexts(); // Refresh list after extraction
+    } else {
+      showToast(`⚠ ${response?.error || "Extraction failed"}`);
+    }
+  } catch (err) {
+    console.error("Popup Error:", err);
+    showToast("⚠ Connection failed. Try refreshing the page.");
+  }
+
+  btnExtract.innerHTML = originalText;
+  btnExtract.disabled = false;
 });
 
 btnExport.addEventListener("click", async () => {

@@ -1,18 +1,23 @@
 // content-script.js — CORTEX (self-contained, no ES module imports)
 
-const BASE_URL = "http://localhost:5000";
-const TIMEOUT_MS = 3000;
+const BASE_URL = "http://localhost:5001";
+const TIMEOUT_MS = 10000;
 
 const PLATFORMS = {
   claude: {
     id: "claude", name: "Claude", domains: ["claude.ai"],
     inputSelectors: ['div[contenteditable="true"].ProseMirror', 'div[contenteditable="true"]', 'fieldset div[contenteditable]'],
+    titleSelectors: ['div.font-medium.truncate', 'title'],
     messageSelectors: { user: '[data-testid="human-turn-content"]', ai: '[data-testid="ai-turn-content"]' }
   },
   chatgpt: {
     id: "chatgpt", name: "ChatGPT", domains: ["chat.openai.com", "chatgpt.com"],
     inputSelectors: ['#prompt-textarea', 'div[contenteditable="true"]', 'textarea'],
-    messageSelectors: { user: '[data-message-author-role="user"]', ai: '[data-message-author-role="assistant"]' }
+    titleSelectors: ['nav a.flex.py-3.px-3.items-center.gap-3.relative.rounded-md.bg-token-sidebar-surface-tertiary', 'title', 'div.font-semibold'],
+    messageSelectors: { 
+      user: '[data-message-author-role="user"], .user-message, .message-user', 
+      ai: '[data-message-author-role="assistant"], .markdown.prose, .assistant-message, .message-assistant' 
+    }
   },
   gemini: {
     id: "gemini", name: "Gemini", domains: ["gemini.google.com"],
@@ -71,39 +76,42 @@ async function postExtract(platformId, conversationText) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 const platform = detectPlatform(window.location.href);
-let injected = false;
 
 if (platform) {
-  console.log(`[CORTEX] Active on ${platform.name}`);
-  init();
+  console.log(`[CORTEX] Active on ${platform.name} — waiting for user action`);
 }
 
-async function init() {
-  if (document.readyState !== "complete") {
-    await new Promise(r => window.addEventListener("load", r, { once: true }));
+// ── Injection (only triggered by user clicking popup button) ─────────────────
+
+async function tryInject(manualBriefing = null) {
+  const currentPlatform = platform || detectPlatform(window.location.href);
+  if (!currentPlatform) return false;
+
+  const input = findInput(currentPlatform);
+  if (!input) {
+    console.warn("[CORTEX] No input field found on page");
+    return false;
   }
-  await sleep(800);
-  await tryInject();
-  startSPAObserver();
-}
 
-async function tryInject() {
-  if (injected) return;
-  const input = findInput();
-  if (!input) return;
-  const briefing = await getBriefing(platform.id);
-  if (!briefing) { console.log("[CORTEX] Vault is empty or server is down"); return; }
+  const briefing = manualBriefing || await getBriefing(currentPlatform.id);
+  if (!briefing) {
+    console.log("[CORTEX] Context is empty or server is down");
+    showToast("⚠ Context is empty or server is down");
+    return false;
+  }
+
   const success = injectBriefing(input, briefing);
   if (success) {
-    injected = true;
-    console.log("[CORTEX] Injected into", platform.name);
-    showToast(`CORTEX context loaded for ${platform.name}`);
-    chrome.runtime.sendMessage({ type: "CORTEX_INJECT_DONE", platformId: platform.id });
+    console.log("[CORTEX] Injected into", currentPlatform.name);
+    showToast(`CORTEX context loaded for ${currentPlatform.name}`);
   }
+  return success;
 }
 
-function findInput() {
-  for (const selector of platform.inputSelectors) {
+function findInput(p) {
+  const currentP = p || platform || detectPlatform(window.location.href);
+  if (!currentP) return null;
+  for (const selector of currentP.inputSelectors) {
     const el = document.querySelector(selector);
     if (el) return el;
   }
@@ -130,39 +138,97 @@ function injectBriefing(inputEl, briefing) {
   } catch (err) { console.error("[CORTEX] Injection failed:", err); return false; }
 }
 
-function startSPAObserver() {
-  let lastUrl = window.location.href;
-  setInterval(() => {
-    const cur = window.location.href;
-    if (cur !== lastUrl) {
-      lastUrl = cur;
-      injected = false;
-      sleep(1000).then(tryInject);
-    }
-  }, 500);
-
-  new MutationObserver(async () => {
-    if (injected) return;
-    const input = findInput();
-    if (input) { await sleep(300); await tryInject(); }
-  }).observe(document.body, { childList: true, subtree: true });
-}
+// ── Extraction (interleaved in DOM order) ────────────────────────────────────
 
 async function extractConversation() {
-  const { user: userSel, ai: aiSel } = platform.messageSelectors;
-  const userMsgs = [...document.querySelectorAll(userSel)].map(el => `[User]: ${el.innerText.trim()}`).join("\n\n");
-  const aiMsgs   = [...document.querySelectorAll(aiSel)].map(el => `[${platform.name}]: ${el.innerText.trim()}`).join("\n\n");
-  const text = `${userMsgs}\n\n${aiMsgs}`.trim();
-  if (!text) { console.log("[CORTEX] No conversation found"); return; }
-  const ok = await postExtract(platform.id, text);
-  console.log(`[CORTEX] Extraction ${ok ? "succeeded" : "failed"}`);
-  chrome.runtime.sendMessage({ type: "CORTEX_EXTRACTION_DONE", platformId: platform.id, charCount: text.length });
+  // Ensure platform is detected (in case of SPA navigation)
+  const currentPlatform = platform || detectPlatform(window.location.href);
+  if (!currentPlatform) {
+    throw new Error("Platform not supported or not detected");
+  }
+
+  const { user: userSel, ai: aiSel } = currentPlatform.messageSelectors;
+
+  // Build a combined selector
+  const combinedSelector = `${userSel}, ${aiSel}`;
+  const allNodes = document.querySelectorAll(combinedSelector);
+
+  console.log(`[CORTEX] Extraction attempt on ${currentPlatform.name}: Found ${allNodes.length} nodes`);
+
+  if (allNodes.length === 0) {
+    console.warn("[CORTEX] Extraction aborted: No conversation messages found with current selectors.");
+    return { ok: false, error: "No messages found. Try refreshing the page." };
+  }
+
+  const lines = [];
+  for (const node of allNodes) {
+    const content = node.innerText.trim();
+    if (!content) continue;
+
+    if (node.matches(userSel)) {
+      lines.push(`[User]: ${content}`);
+    } else {
+      // If it's not a user node, it's an AI node (since we used a combined selector)
+      lines.push(`[${currentPlatform.name}]: ${content}`);
+    }
+  }
+
+  const text = lines.join("\n\n").trim();
+
+  if (!text) {
+    return { ok: false, error: "Messages found but they were empty." };
+  }
+
+  // Extract clean title from page
+  let chatTitle = "";
+  if (currentPlatform.titleSelectors) {
+    for (const sel of currentPlatform.titleSelectors) {
+      const el = document.querySelector(sel);
+      if (el && el.innerText.trim()) {
+        chatTitle = el.innerText.trim();
+        break;
+      }
+    }
+  }
+
+  if (!chatTitle) {
+    chatTitle = document.title
+      .replace(/^(ChatGPT|Claude|Gemini|Copilot)\s*-\s*/i, "")
+      .replace(/\s*-\s*(ChatGPT|Claude|Gemini|Copilot)$/i, "")
+      .trim();
+  }
+  
+  if (chatTitle === "ChatGPT" || chatTitle === "Claude" || chatTitle === "Gemini" || !chatTitle || chatTitle === "New Chat") {
+    chatTitle = `${currentPlatform.name} Chat (${new Date().toLocaleTimeString()})`;
+  }
+
+  const ok = await postExtract(currentPlatform.id, text, chatTitle);
+  if (ok) {
+    showToast(`✓ Extracted: ${chatTitle}`);
+    return { ok: true, count: lines.length };
+  } else {
+    return { ok: false, error: "Server error. Is the backend running?" };
+  }
 }
 
+// ── Message listener (robust error handling) ─────────────────────────────────
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "CORTEX_INJECT")   { injected = false; tryInject().then(() => sendResponse({ ok: true })); return true; }
-  if (message.type === "CORTEX_EXTRACT")  { extractConversation().then(() => sendResponse({ ok: true })); return true; }
+  if (message.type === "CORTEX_INJECT") {
+    tryInject(message.briefing)
+      .then((ok) => sendResponse({ ok }))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
+  if (message.type === "CORTEX_EXTRACT") {
+    extractConversation()
+      .then((res) => sendResponse(res))
+      .catch((err) => sendResponse({ ok: false, error: err.message }));
+    return true;
+  }
 });
+
+// ── UI helpers ───────────────────────────────────────────────────────────────
 
 function showToast(message) {
   const toast = document.createElement("div");

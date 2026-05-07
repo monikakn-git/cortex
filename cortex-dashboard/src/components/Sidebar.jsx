@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { 
   LayoutDashboard, BrainCircuit, GitMerge, 
   Database, FileCode2, ChevronLeft, ChevronRight,
-  Shield, Zap, Radio
+  Shield, Zap, Radio, MessageSquare
 } from 'lucide-react';
 import './Sidebar.css';
 
 const NAV_ITEMS = [
   { id: 'dashboard', icon: LayoutDashboard, label: 'Overview' },
   { id: 'graph',     icon: BrainCircuit,     label: 'Knowledge' },
-  { id: 'conflicts', icon: GitMerge,          label: 'Conflicts', badge: 4 },
+  { id: 'conflicts', icon: GitMerge,          label: 'Conflicts' },
   { id: 'coverage',  icon: Database,          label: 'AI Coverage' },
+  { id: 'conversations', icon: MessageSquare, label: 'Conversations' },
   { id: 'vault',     icon: FileCode2,         label: 'Direct Vault' },
 ];
 

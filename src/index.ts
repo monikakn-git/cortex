@@ -7,13 +7,14 @@ import { startHeartbeat } from './heartbeat';
 import kpiRoutes from './routes/kpiRoutes';
 import logRoutes from './routes/logRoutes';
 import extensionRoutes from './routes/extensionRoutes';
+import conversationRoutes from './routes/conversationRoutes';
 
 // Ensure required directories exist (Render doesn't persist them)
 fs.mkdirSync('storage', { recursive: true });
 fs.mkdirSync('config', { recursive: true });
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors()); // Allows your Vercel frontend to fetch data
@@ -22,6 +23,7 @@ app.use(express.json());
 // Routes
 app.use('/api/kpis', kpiRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/api/conversations', conversationRoutes);
 app.use('/', extensionRoutes); // Extension endpoints like /health, /inject
 
 // Basic health check route for Render

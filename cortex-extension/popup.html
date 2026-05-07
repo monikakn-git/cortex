@@ -103,6 +103,34 @@
       padding: 12px 16px 4px;
     }
 
+    /* Stored Conversations List */
+    .stored-list {
+      margin: 8px 16px 0;
+      max-height: 120px;
+      overflow-y: auto;
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 8px;
+      background: rgba(0,0,0,0.2);
+    }
+    .stored-list::-webkit-scrollbar { width: 4px; }
+    .stored-list::-webkit-scrollbar-thumb { background: rgba(167, 139, 250, 0.2); border-radius: 4px; }
+
+    .stored-item {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: default;
+    }
+    .stored-item:last-child { border-bottom: none; }
+    .stored-item-header { display: flex; align-items: center; justify-content: space-between; }
+    .stored-platform { font-size: 9px; font-weight: 700; text-transform: uppercase; color: #a78bfa; background: rgba(167, 139, 250, 0.1); padding: 1px 5px; border-radius: 4px; }
+    .stored-date { font-size: 9px; color: #4b5563; }
+    .stored-preview { font-size: 11px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+    .btn-load { padding: 3px 8px; font-size: 10px; background: rgba(167, 139, 250, 0.15); color: #c4b5fd; border: 1px solid rgba(167, 139, 250, 0.2); border-radius: 4px; cursor: pointer; }
+    .btn-load:hover { background: rgba(167, 139, 250, 0.25); }
+
     /* Import file input (hidden, triggered by button) */
     #import-file { display: none; }
 
@@ -145,15 +173,21 @@
 
   <div class="actions">
     <button class="btn btn-primary" id="btn-inject">
-      ⬡ &nbsp;Inject Context Now
+      ⬡ &nbsp;Inject Global Context
     </button>
     <button class="btn btn-secondary" id="btn-extract">
-      ↑ &nbsp;Extract Current Conversation
+      ↑ &nbsp;Extract Current Chat
     </button>
   </div>
 
+  <div class="section-label">Select Stored Context</div>
+  <div class="stored-list" id="stored-list">
+    <!-- Populated by JS -->
+    <div style="padding: 10px; font-size: 11px; color: #4b5563; text-align: center;">Loading chats...</div>
+  </div>
+
   <hr class="divider" />
-  <div class="section-label">Context Will</div>
+  <div class="section-label">Vault Utility</div>
 
   <div class="actions">
     <button class="btn btn-success" id="btn-export">

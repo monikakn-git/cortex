@@ -157,33 +157,69 @@ export function parseExtractedSignals(response: string): ExtractedSignals {
   return JSON.parse(jsonStr.trim());
 }
 
-// Placeholder: In production, replace with actual LLM call
+// Smart heuristic extraction for demo purposes
 export async function extractSignals(
   conversationText: string,
   platform: string
 ): Promise<ExtractedSignals> {
-  // TODO: Integrate with LangChain LLM
-  // const llm = new ChatOpenAI({ ... });
-  // const prompt = buildExtractionPrompt(conversationText, platform);
-  // const result = await llm.call(prompt);
-  // return parseExtractedSignals(result);
+  const signals: ExtractedSignals['signals'] = {
+    preferences: [],
+    beliefs: [],
+    goals: [],
+    constraints: [],
+    life_state: { primary: 'building', secondary: [], context: '' },
+    tool_usage: [],
+  };
+
+  const lines = conversationText.split('\n');
   
-  // Placeholder return
+  // Simple heuristic patterns
+  const patterns = [
+    { regex: /prefer (?:to use )?([\w\s.#]+)/i, type: 'preferences', key: 'tool_preference' },
+    { regex: /style is ([\w\s]+)/i, type: 'preferences', key: 'coding_style' },
+    { regex: /goal is to ([\w\s]+)/i, type: 'goals', field: 'goal' },
+    { regex: /want to (?:achieve|build|create) ([\w\s]+)/i, type: 'goals', field: 'goal' },
+    { regex: /working on ([\w\s.#]+)/i, type: 'goals', field: 'goal' },
+    { regex: /i am a ([\w\s]+)/i, type: 'preferences', key: 'user_role' },
+    { regex: /as a ([\w\s]+),/i, type: 'preferences', key: 'user_role' },
+    { regex: /(?:using|used) ([\w\s.#]+)/i, type: 'tool_usage', field: 'tool_name' },
+    { regex: /must (?:be|have) ([\w\s]+)/i, type: 'constraints', field: 'description' },
+  ];
+
+  lines.forEach((line, index) => {
+    patterns.forEach(p => {
+      const match = line.match(p.regex);
+      if (match && match[1]) {
+        const val = match[1].trim();
+        const source = `Line ${index + 1}`;
+
+        if (p.type === 'preferences') {
+          signals.preferences.push({ type: 'stated', key: p.key!, value: val, confidence: 0.9, source });
+        } else if (p.type === 'goals') {
+          signals.goals.push({ goal: val, status: 'active', source });
+        } else if (p.type === 'tool_usage') {
+          signals.tool_usage.push({ tool_name: val, usage_context: line.trim(), recommendation_strength: 'strong' });
+        } else if (p.type === 'constraints') {
+          signals.constraints.push({ type: 'hard', description: val, source });
+        }
+      }
+    });
+
+    // Detect Life State
+    if (line.toLowerCase().includes('debug')) signals.life_state.primary = 'debugging';
+    else if (line.toLowerCase().includes('refactor')) signals.life_state.primary = 'refactoring';
+    else if (line.toLowerCase().includes('learn')) signals.life_state.primary = 'learning';
+  });
+
   return {
     extracted_at: new Date().toISOString(),
     platform,
-    signals: {
-      preferences: [],
-      beliefs: [],
-      goals: [],
-      constraints: [],
-      life_state: { primary: 'building', secondary: [], context: '' },
-      tool_usage: [],
-    },
+    signals,
   };
 }
 
 export function saveExtractedSignals(signals: ExtractedSignals): void {
+  if (!fs.existsSync('storage')) fs.mkdirSync('storage', { recursive: true });
   const filePath = `storage/${signals.platform}-contexts.yaml`;
   
   let store: { contexts: ExtractedSignals[] } = { contexts: [] };

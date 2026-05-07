@@ -17,36 +17,30 @@ function detectPlatform(url) {
   return null;
 }
 
+// Track which tab is on which platform (for popup status only)
 const tabPlatforms = {};
-const lastExtractTime = {};
-const EXTRACT_DEBOUNCE_MS = 5 * 60 * 1000;
 
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId).catch(() => null);
-  if (tab?.url) await handleNavigation(tabId, tab.url);
+  if (tab?.url) trackPlatform(tabId, tab.url);
 });
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete" && changeInfo.url) await handleNavigation(tabId, changeInfo.url);
+  if (changeInfo.status === "complete" && changeInfo.url) trackPlatform(tabId, changeInfo.url);
 });
 
-async function handleNavigation(tabId, url) {
+// Only tracks the platform — no auto-injection or auto-extraction
+function trackPlatform(tabId, url) {
   const platform = detectPlatform(url);
-  if (!platform) { delete tabPlatforms[tabId]; return; }
+  if (!platform) {
+    delete tabPlatforms[tabId];
+    return;
+  }
   const prev = tabPlatforms[tabId];
   tabPlatforms[tabId] = platform.id;
   if (prev !== platform.id) {
-    console.log(`[CORTEX BG] Switch → ${platform.name}`);
-    chrome.tabs.sendMessage(tabId, { type: "CORTEX_INJECT", platformId: platform.id }).catch(() => {});
-    if (prev && prev !== platform.id) triggerExtraction(tabId, prev);
+    console.log(`[CORTEX BG] Detected platform: ${platform.name}`);
   }
-}
-
-function triggerExtraction(tabId, platformId) {
-  const now = Date.now();
-  if (now - (lastExtractTime[platformId] ?? 0) < EXTRACT_DEBOUNCE_MS) return;
-  lastExtractTime[platformId] = now;
-  chrome.tabs.sendMessage(tabId, { type: "CORTEX_EXTRACT", platformId }).catch(() => {});
 }
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
