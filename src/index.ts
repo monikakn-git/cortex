@@ -6,6 +6,7 @@ import { connectDB } from './db/mongoose';
 import { startHeartbeat } from './heartbeat';
 import kpiRoutes from './routes/kpiRoutes';
 import logRoutes from './routes/logRoutes';
+import extensionRoutes from './routes/extensionRoutes';
 
 // Ensure required directories exist (Render doesn't persist them)
 fs.mkdirSync('storage', { recursive: true });
@@ -21,6 +22,7 @@ app.use(express.json());
 // Routes
 app.use('/api/kpis', kpiRoutes);
 app.use('/api/logs', logRoutes);
+app.use('/', extensionRoutes); // Extension endpoints like /health, /inject
 
 // Basic health check route for Render
 app.get('/', (req, res) => {

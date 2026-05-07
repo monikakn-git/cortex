@@ -1,6 +1,6 @@
 // content-script.js — CORTEX (self-contained, no ES module imports)
 
-const BASE_URL = "http://localhost:3141";
+const BASE_URL = "http://localhost:5000";
 const TIMEOUT_MS = 3000;
 
 const PLATFORMS = {

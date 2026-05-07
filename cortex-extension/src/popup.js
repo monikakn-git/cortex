@@ -1,6 +1,6 @@
 // popup.js — CORTEX Popup (no ES module imports)
 
-const BASE_URL = "http://localhost:3141";
+const BASE_URL = "http://localhost:5000";
 const TIMEOUT_MS = 3000;
 
 async function fetchWithTimeout(url, options = {}) {
@@ -63,7 +63,7 @@ async function checkBackend() {
   const alive = await checkHealth();
   if (alive) {
     serverDot.className = "status-dot";
-    serverStatus.innerHTML = `Backend <span>online</span> · localhost:3141`;
+    serverStatus.innerHTML = `Backend <span>online</span> · localhost:5000`;
   } else {
     serverDot.className = "status-dot offline";
     serverStatus.innerHTML = `Backend <span style="color:#f87171">offline</span> — run npm run dev`;

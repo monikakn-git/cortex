@@ -3,7 +3,7 @@
  * Handles communication with the local OpenClaw backend.
  */
 
-const BASE_URL = 'http://localhost:8000'; // Default P1 backend port
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000'; // Default backend port
 
 export const api = {
   /**
