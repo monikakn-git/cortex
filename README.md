@@ -10,6 +10,9 @@
 
 </div>
 
+## 🎥 Demo Video
+[▶ Click here to watch the demo](https://drive.google.com/file/d/17W_CQ5VDuKcM7_M3OSahdYzvRTf4eFge/view?usp=sharing)
+
 ---
 
 ## What is CORTEX?
