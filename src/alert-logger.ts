@@ -1,7 +1,7 @@
 // src/alert-logger.ts — Log conflicts to storage
 import * as fs from 'fs';
 import * as yaml from 'yaml';
-import { Conflict } from './conflict-detector';
+import { Conflict } from './skills/conflict-detector';
 
 const CONFLICTS_FILE = 'storage/conflicts.yaml';
 

@@ -5,6 +5,9 @@ import * as yaml from 'yaml';
 import { generateBriefing, Platform } from '../skills/context-injector';
 import { runExtraction } from '../skills/context-extractor';
 import { saveConversation } from './conversationRoutes';
+import { resolveConflict as dbResolveConflict } from '../alert-logger';
+
+import { runHeartbeatCycle } from '../heartbeat';
 
 const router = Router();
 
@@ -28,6 +31,9 @@ router.post('/extract', async (req, res) => {
 
     // Run signal extraction as before
     const signals = await runExtraction(conversation, platform);
+
+    // Trigger immediate conflict detection cycle (non-blocking)
+    runHeartbeatCycle().catch(err => console.error('[HEARTBEAT] Immediate cycle failed:', err));
 
     res.json({
       ok: true,
@@ -134,6 +140,34 @@ router.post('/api/soul/update', (req, res) => {
     fs.writeFileSync(soulPath, yaml.stringify(soul), 'utf-8');
 
     res.json({ ok: true, name: soul.user.name });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /resolve ───────────────────────────────────────────────────────────
+router.post('/resolve', async (req, res) => {
+  try {
+    const { id, value } = req.body;
+    if (!id) return res.status(400).json({ error: 'Missing conflict ID' });
+
+    await dbResolveConflict(id, 'resolved', value);
+    res.json({ ok: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── POST /resolve-all ───────────────────────────────────────────────────────
+router.post('/resolve-all', async (req, res) => {
+  try {
+    const { resolutions } = req.body; // Array of { id, value }
+    if (!Array.isArray(resolutions)) return res.status(400).json({ error: 'Resolutions must be an array' });
+
+    for (const { id, value } of resolutions) {
+      await dbResolveConflict(id, 'resolved', value);
+    }
+    res.json({ ok: true });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

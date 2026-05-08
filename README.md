@@ -55,8 +55,7 @@ Built on [OpenClaw](https://openclaw.dev) agent framework.
 git clone https://github.com/monikakn-git/cortex.git
 cd cortex
 npm install
-npm run build
-npm start 
+npm run start 
 # → API running at http://localhost:5001
 ```
 
@@ -70,8 +69,9 @@ npm run dev
 
 ### 3. Browser Extension
 1. Open Chrome Extensions (`chrome://extensions`)
-2. Enable "Developer Mode"
-3. Click "Load Unpacked" and select the `cortex-extension` folder.
+2. Enable **Developer Mode** (top right)
+3. Click **Load Unpacked** and select the `cortex-extension` folder.
+4. **Note**: After making changes to the extension code, click the **Reload** icon on the extension card.
 
 ---
 
@@ -80,7 +80,9 @@ npm run dev
 - 🌌 **Cosmic Pro Dashboard**: A complete UI/UX redesign with a Deep Royal Slate theme and animated nebula backgrounds.
 - 🕸️ **Cognitive Topology**: An interactive D3-powered Knowledge Graph that visualizes your context vault.
 - 🆔 **Persistent Identity**: In-place profile editing in the dashboard header.
-- 🔄 **Selective Context Recall**: pick specific past project contexts to "Load" via the extension popup.
+- 🛡️ **Injection Preview**: A glassy overlay that lets you review and edit your context before it is shared with the AI.
+- ⚔️ **Real-Time Conflict Detection**: Instant alerts when different AI platforms give contradictory advice (e.g., TypeScript vs JavaScript).
+- 🔄 **Selective Context Recall**: Pick specific past project contexts to "Load" via the extension popup.
 - 🎯 **Intelligent Naming**: Real-time sync between AI chat titles and knowledge nodes.
 
 ---

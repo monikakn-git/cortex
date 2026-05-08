@@ -1,11 +1,29 @@
+import { useState, useEffect } from 'react';
 import ConflictResolver from '../components/ConflictResolver';
-import { mockConflicts } from '../data/mockData';
+import { api } from '../services/api';
 import { GitMerge, Info } from 'lucide-react';
 import './ConflictsPage.css';
 
 export default function ConflictsPage() {
+  const [conflicts, setConflicts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadConflicts = async () => {
+      const vault = await api.getVault();
+      if (vault && vault.realConflicts) {
+        setConflicts(vault.realConflicts);
+      }
+      setLoading(false);
+    };
+    loadConflicts();
+  }, []);
+
+  const pending = conflicts.filter(c => c.status === 'pending');
+  const highSeverity = pending.filter(c => c.severity === 'high').length;
+
   return (
-    <div className="conflicts-page">
+    <div className="conflicts-page animate-up">
       <div className="cflp-header">
         <div className="cflp-title-wrap">
           <GitMerge size={20} color="#ff4d6a" />
@@ -14,10 +32,12 @@ export default function ConflictsPage() {
             <p className="cflp-sub">Side-by-side diff view of contradictions between AI beliefs</p>
           </div>
         </div>
-        <div className="cflp-info glass">
-          <Info size={12} color="#7c6aff" />
-          <span>{mockConflicts.length} active conflicts detected across {mockConflicts.filter(c=>c.severity==='high').length} high-severity fields</span>
-        </div>
+        {!loading && (
+          <div className="cflp-info glass">
+            <Info size={12} color="#7c6aff" />
+            <span>{pending.length} active conflicts detected across {highSeverity} high-severity fields</span>
+          </div>
+        )}
       </div>
 
       <div className="cflp-body">
@@ -35,7 +55,7 @@ export default function ConflictsPage() {
         </div>
 
         <div className="cflp-resolver-wrap">
-          <ConflictResolver conflicts={mockConflicts} />
+          <ConflictResolver conflicts={conflicts} />
         </div>
       </div>
     </div>

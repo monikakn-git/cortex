@@ -21,12 +21,45 @@ const PAGES = {
 export default function App() {
   const [activePage, setActivePage] = useState('dashboard');
   const [isReady, setIsReady] = useState(false);
+  const [userName, setUserName] = useState('User');
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     // Artificial delay for 'booting' sequence feel
     const timer = setTimeout(() => setIsReady(true), 1200);
+    fetchUserName();
     return () => clearTimeout(timer);
   }, []);
+
+  const fetchUserName = async () => {
+    try {
+      const res = await fetch('http://localhost:5001/vault/export');
+      const data = await res.json();
+      if (data.ok && data.vault?.soul?.user?.name) {
+        setUserName(data.vault.soul.user.name);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user name:', err);
+    }
+  };
+
+  const handleRename = async (newName) => {
+    if (!newName.trim()) {
+       setIsEditing(false);
+       return;
+    }
+    setUserName(newName);
+    setIsEditing(false);
+    try {
+      await fetch('http://localhost:5001/api/soul/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newName }),
+      });
+    } catch (err) {
+      console.error('Failed to update name:', err);
+    }
+  };
 
   const PageComponent = PAGES[activePage] || Dashboard;
 
@@ -75,7 +108,19 @@ export default function App() {
             <button className="h-action-btn"><Settings size={18} /></button>
             <div className="profile-pill glass">
               <div className="profile-avatar"><User size={14} /></div>
-              <span className="profile-name">John Doe</span>
+              {isEditing ? (
+                <input 
+                  autoFocus
+                  className="profile-input"
+                  defaultValue={userName}
+                  onBlur={(e) => handleRename(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRename(e.target.value)}
+                />
+              ) : (
+                <span className="profile-name" onClick={() => setIsEditing(true)} title="Click to rename">
+                  {userName}
+                </span>
+              )}
             </div>
           </div>
         </header>

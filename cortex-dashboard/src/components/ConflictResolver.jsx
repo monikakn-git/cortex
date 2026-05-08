@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GitMerge, CheckCheck, ChevronDown, ChevronUp, Zap } from 'lucide-react';
 import { aiColors } from '../data/mockData';
+import { api } from '../services/api';
 import './ConflictResolver.css';
 
 const SEVERITY_COLOR = { high: '#ff4d6a', medium: '#ffb347', low: '#facc15' };
@@ -68,17 +69,55 @@ function ConflictCard({ conflict, onResolve, resolved }) {
 }
 
 export default function ConflictResolver({ conflicts }) {
-  const [resolved, setResolved] = useState(new Set());
+  const [resolved, setResolved] = useState(() => {
+    const initial = new Set();
+    conflicts.forEach(c => {
+      if (c.status === 'resolved') initial.add(c.id);
+    });
+    return initial;
+  });
   const [fixingAll, setFixingAll] = useState(false);
 
-  const handleResolve = (id) => setResolved(prev => new Set([...prev, id]));
-
-  const handleFixAll = () => {
-    setFixingAll(true);
-    conflicts.forEach((c, i) => {
-      setTimeout(() => setResolved(prev => new Set([...prev, c.id])), i * 300);
+  // Sync resolved state if conflicts change (e.g. on mount)
+  useEffect(() => {
+    const initial = new Set();
+    conflicts.forEach(c => {
+      if (c.status === 'resolved') initial.add(c.id);
     });
-    setTimeout(() => setFixingAll(false), conflicts.length * 300 + 200);
+    setResolved(initial);
+  }, [conflicts]);
+
+  const handleResolve = async (id) => {
+    try {
+      // Find the conflict to get a value for resolution (simple fallback)
+      const conflict = conflicts.find(c => c.id === id);
+      const value = conflict ? conflict.valueA : 'User selection'; 
+      
+      const ok = await api.resolveConflict(id, value);
+      if (ok) {
+        setResolved(prev => new Set([...prev, id]));
+      }
+    } catch (err) {
+      console.error('Failed to resolve conflict', err);
+    }
+  };
+
+  const handleFixAll = async () => {
+    setFixingAll(true);
+    const unresolved = conflicts.filter(c => !resolved.has(c.id));
+    const resolutions = unresolved.map(c => ({ id: c.id, value: c.valueA }));
+
+    try {
+      const ok = await api.resolveAll(resolutions);
+      if (ok) {
+        unresolved.forEach((c, i) => {
+          setTimeout(() => setResolved(prev => new Set([...prev, c.id])), i * 150);
+        });
+      }
+    } catch (err) {
+      console.error('Failed to resolve all conflicts', err);
+    }
+    setTimeout(() => setFixingAll(false), unresolved.length * 150 + 200);
   };
 
   const unresolved = conflicts.filter(c => !resolved.has(c.id));

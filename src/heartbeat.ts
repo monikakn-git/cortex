@@ -1,7 +1,7 @@
 // src/heartbeat.ts — Main HEARTBEAT loop
 import { loadRecentContexts } from './context-loader';
 import { extractBeliefs } from './belief-extractor';
-import { detectConflicts } from './conflict-detector';
+import { detectConflicts } from './skills/conflict-detector';
 import { alertAndLog } from './alert-logger';
 import { detectPoisoning } from './skills/context-poisoning-detector';
 import { detectPersonaDrift } from './skills/persona-drift-detector';
@@ -59,13 +59,14 @@ export async function startHeartbeat(): Promise<void> {
   await runHeartbeatCycle(config);
 }
 
-async function runHeartbeatCycle(config: Config): Promise<void> {
+export async function runHeartbeatCycle(config?: Config): Promise<void> {
+  const activeConfig = config || loadConfig();
   const startTime = Date.now();
   console.log('[HEARTBEAT] Running cycle...');
 
   try {
     // Step 1: Load recent contexts
-    const contexts = await loadRecentContexts(config.heartbeat.max_contexts_per_ai);
+    const contexts = await loadRecentContexts(activeConfig.heartbeat.max_contexts_per_ai);
     console.log(`[HEARTBEAT] Loaded ${contexts.length} contexts.`);
 
     // Step 2: Extract beliefs
@@ -73,7 +74,7 @@ async function runHeartbeatCycle(config: Config): Promise<void> {
     console.log(`[HEARTBEAT] Extracted ${allBeliefs.length} beliefs.`);
 
     // Step 3: Detect conflicts
-    const conflicts = detectConflicts(allBeliefs, config.heartbeat.severity_threshold);
+    const conflicts = detectConflicts(allBeliefs, activeConfig.heartbeat.severity_threshold);
     console.log(`[HEARTBEAT] Found ${conflicts.length} conflicts.`);
 
     // Step 4: Alert & Log conflicts

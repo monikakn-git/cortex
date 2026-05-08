@@ -5,9 +5,15 @@ import * as yaml from 'yaml';
 export interface Context {
   ai: string;
   date: string;
-  summary: string;
+  summary?: string;
   raw_content?: string;
-  beliefs?: Belief[];
+  signals?: {
+    preferences: any[];
+    goals: any[];
+    beliefs: any[];
+    constraints: any[];
+    tool_usage: any[];
+  };
 }
 
 export interface Belief {
@@ -34,7 +40,11 @@ export async function loadRecentContexts(maxPerAi: number = 10): Promise<Context
         
         if (data && data.contexts) {
           const recent = data.contexts.slice(0, maxPerAi);
-          contexts.push(...recent.map((c: any) => ({ ...c, ai })));
+          contexts.push(...recent.map((c: any) => ({ 
+            ...c, 
+            ai, 
+            date: c.extracted_at || new Date().toISOString() 
+          })));
         }
       } catch (error) {
         console.warn(`[ContextLoader] Failed to load ${ai} contexts:`, error);

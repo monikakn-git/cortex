@@ -1,35 +1,33 @@
 // popup.js — CORTEX Popup (no ES module imports)
 
-const BASE_URL = "http://localhost:5001";
-const TIMEOUT_MS = 10000;
+// Constants are now handled in background.js
 
-async function fetchWithTimeout(url, options = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-  try {
-    const res = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(timer);
-    return res;
-  } catch { clearTimeout(timer); return null; }
-}
+// fetchWithTimeout removed - use background proxies instead
 
 async function checkHealth() {
-  try { const r = await fetchWithTimeout(`${BASE_URL}/health`); return r?.ok ?? false; } catch { return false; }
+  try {
+    const res = await chrome.runtime.sendMessage({ type: "CORTEX_STATUS_REQUEST" });
+    // This is already checked in init() via checkBackend(), but we can add a specific health check if needed.
+    // For now, we'll proxy through the background.
+    const status = await chrome.runtime.sendMessage({ type: "CORTEX_HEALTH_CHECK" });
+    return status?.ok ?? false;
+  } catch { return false; }
 }
 
 async function exportVault() {
   try {
-    const r = await fetchWithTimeout(`${BASE_URL}/vault/export`);
-    return r?.ok ? await r.json() : null;
+    const response = await chrome.runtime.sendMessage({ type: "CORTEX_VAULT_EXPORT" });
+    return response?.data ?? null;
   } catch { return null; }
 }
 
 async function importVault(passport) {
   try {
-    const r = await fetchWithTimeout(`${BASE_URL}/vault/import`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(passport)
+    const response = await chrome.runtime.sendMessage({ 
+      type: "CORTEX_VAULT_IMPORT", 
+      data: passport 
     });
-    return r?.ok ?? false;
+    return response?.ok ?? false;
   } catch { return false; }
 }
 
@@ -51,6 +49,12 @@ const btnExport     = document.getElementById("btn-export");
 const btnImport     = document.getElementById("btn-import");
 const importFile    = document.getElementById("import-file");
 const storedList    = document.getElementById("stored-list");
+
+// Preview UI
+const previewContainer = document.getElementById("preview-container");
+const previewText = document.getElementById("preview-text");
+const btnConfirmInject = document.getElementById("btn-confirm-inject");
+const btnCancelPreview = document.getElementById("btn-cancel-preview");
 const toast         = document.getElementById("toast");
 
 let currentPlatformId = null;
@@ -90,10 +94,9 @@ async function checkCurrentTab() {
 
 async function loadStoredContexts() {
   try {
-    const res = await fetchWithTimeout(`${BASE_URL}/api/conversations`);
-    if (!res || !res.ok) throw new Error();
-    const data = await res.json();
-    const conversations = data.conversations || [];
+    const response = await chrome.runtime.sendMessage({ type: "CORTEX_CONVERSATIONS_API" });
+    if (!response?.ok) throw new Error();
+    const conversations = response.data?.conversations || [];
 
     if (conversations.length === 0) {
       storedList.innerHTML = '<div style="padding: 10px; font-size: 11px; color: #4b5563; text-align: center;">No saved chats yet</div>';
@@ -129,15 +132,18 @@ async function injectSelectedContext(id) {
   btn.disabled = true;
 
   try {
-    const res = await fetchWithTimeout(`${BASE_URL}/inject-conversation/${id}`);
-    if (!res || !res.ok) throw new Error();
-    const data = await res.json();
-
-    await chrome.tabs.sendMessage(currentTab.id, { 
-      type: "CORTEX_INJECT", 
-      briefing: data.briefing 
+    const response = await chrome.runtime.sendMessage({ 
+      type: "CORTEX_INJECT_CONV_API", 
+      id: id 
     });
-    showToast("✓ Context loaded into chat!");
+    if (!response?.ok) throw new Error();
+    const data = response;
+
+    // Show Preview instead of immediate injection
+    previewText.value = data.briefing;
+    previewContainer.classList.add("visible");
+    showToast("✓ Context loaded. Review before injecting.");
+
   } catch (err) {
     showToast("⚠ Could not load context");
   } finally {
@@ -146,14 +152,65 @@ async function injectSelectedContext(id) {
   }
 }
 
+// ── Inject (Trigger Preview) ──────────────────────────────────────────────
 btnInject.addEventListener("click", async () => {
-  if (!currentPlatformId || !currentTab) return;
-  btnInject.disabled = true; btnInject.textContent = "Injecting…";
+  if (!currentPlatformId) return;
+  
+  btnInject.disabled = true;
+  btnInject.textContent = "Loading context...";
+
   try {
-    await chrome.tabs.sendMessage(currentTab.id, { type: "CORTEX_INJECT", platformId: currentPlatformId });
-    showToast("✓ Global context injected!");
-  } catch { showToast("⚠ Injection failed — refresh the page"); }
-  btnInject.textContent = "⬡  Inject Global Context"; btnInject.disabled = false;
+    const response = await chrome.runtime.sendMessage({ 
+      type: "CORTEX_INJECT_API", 
+      platform: currentPlatformId 
+    });
+    const briefing = response?.briefing;
+
+    if (!briefing) {
+      showToast("⚠ No context found for this platform");
+      btnInject.disabled = false;
+      btnInject.innerHTML = "⬡ &nbsp;Inject Global Context";
+      return;
+    }
+
+    // Show Preview
+    previewText.value = briefing;
+    previewContainer.classList.add("visible");
+    
+  } catch (err) {
+    showToast("⚠ Connection failed");
+  } finally {
+    btnInject.disabled = false;
+    btnInject.innerHTML = "⬡ &nbsp;Inject Global Context";
+  }
+});
+
+// ── Confirm Injection ──────────────────────────────────────────────────────
+btnConfirmInject.addEventListener("click", async () => {
+  if (!currentTab) return;
+  
+  const finalBriefing = previewText.value;
+  btnConfirmInject.disabled = true;
+  btnConfirmInject.textContent = "Injecting...";
+
+  try {
+    await chrome.tabs.sendMessage(currentTab.id, { 
+      type: "CORTEX_INJECT", 
+      briefing: finalBriefing 
+    });
+    showToast("✓ Context injected!");
+    previewContainer.classList.remove("visible");
+  } catch (err) {
+    showToast("⚠ Injection failed");
+  } finally {
+    btnConfirmInject.disabled = false;
+    btnConfirmInject.textContent = "Confirm Inject";
+  }
+});
+
+// ── Cancel Preview ─────────────────────────────────────────────────────────
+btnCancelPreview.addEventListener("click", () => {
+  previewContainer.classList.remove("visible");
 });
 
 btnExtract.addEventListener("click", async () => {

@@ -1,14 +1,16 @@
 // content-script.js — CORTEX (self-contained, no ES module imports)
 
-const BASE_URL = "http://localhost:5001";
-const TIMEOUT_MS = 10000;
+// Constants are now handled in background.js to bypass CSP
 
 const PLATFORMS = {
   claude: {
     id: "claude", name: "Claude", domains: ["claude.ai"],
-    inputSelectors: ['div[contenteditable="true"].ProseMirror', 'div[contenteditable="true"]', 'fieldset div[contenteditable]'],
-    titleSelectors: ['div.font-medium.truncate', 'title'],
-    messageSelectors: { user: '[data-testid="human-turn-content"]', ai: '[data-testid="ai-turn-content"]' }
+    inputSelectors: ['div[contenteditable="true"].ProseMirror', 'div[contenteditable="true"]', 'fieldset div[contenteditable]', 'div.cl-input-area'],
+    titleSelectors: ['div.font-medium.truncate', 'h1', 'title', 'div.truncate'],
+    messageSelectors: { 
+      user: 'article:has(.font-user-message), [data-testid*="human"], [data-role*="user"], .font-user-message, div.whitespace-pre-wrap', 
+      ai: 'article:has(.font-claude-message), [data-testid*="assistant"], [data-role*="assistant"], .font-claude-message, .prose, div.prose' 
+    }
   },
   chatgpt: {
     id: "chatgpt", name: "ChatGPT", domains: ["chat.openai.com", "chatgpt.com"],
@@ -56,21 +58,26 @@ async function fetchWithTimeout(url, options = {}) {
 
 async function getBriefing(platformId) {
   try {
-    const res = await fetchWithTimeout(`${BASE_URL}/inject?platform=${encodeURIComponent(platformId)}`);
-    if (!res || !res.ok) return null;
-    const data = await res.json();
-    return data.briefing ?? null;
+    const response = await chrome.runtime.sendMessage({ 
+      type: "CORTEX_INJECT_API", 
+      platform: platformId 
+    });
+    return response?.briefing ?? null;
   } catch { return null; }
 }
 
-async function postExtract(platformId, conversationText) {
+async function postExtract(platformId, conversationText, title) {
   try {
-    const res = await fetchWithTimeout(`${BASE_URL}/extract`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ platform: platformId, conversation: conversationText, captured_at: new Date().toISOString() })
+    const response = await chrome.runtime.sendMessage({
+      type: "CORTEX_EXTRACT_API",
+      payload: { 
+        platform: platformId, 
+        conversation: conversationText, 
+        title: title,
+        captured_at: new Date().toISOString() 
+      }
     });
-    return res?.ok ?? false;
+    return response?.ok ?? false;
   } catch { return false; }
 }
 
@@ -141,23 +148,34 @@ function injectBriefing(inputEl, briefing) {
 // ── Extraction (interleaved in DOM order) ────────────────────────────────────
 
 async function extractConversation() {
-  // Ensure platform is detected (in case of SPA navigation)
-  const currentPlatform = platform || detectPlatform(window.location.href);
-  if (!currentPlatform) {
-    throw new Error("Platform not supported or not detected");
+  try {
+    // Ensure platform is detected (in case of SPA navigation)
+    const currentPlatform = platform || detectPlatform(window.location.href);
+    if (!currentPlatform) {
+      throw new Error("Platform not supported or not detected");
+    }
+
+  // Helper to find nodes even inside Shadow DOM
+  function querySelectorAllDeep(selector, root = document) {
+    let nodes = Array.from(root.querySelectorAll(selector));
+    const walkers = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT, null);
+    let n;
+    while (n = walkers.nextNode()) {
+      if (n.shadowRoot) {
+        nodes = nodes.concat(querySelectorAllDeep(selector, n.shadowRoot));
+      }
+    }
+    return nodes;
   }
 
   const { user: userSel, ai: aiSel } = currentPlatform.messageSelectors;
-
-  // Build a combined selector
-  const combinedSelector = `${userSel}, ${aiSel}`;
-  const allNodes = document.querySelectorAll(combinedSelector);
+  const allNodes = querySelectorAllDeep(`${userSel}, ${aiSel}`);
 
   console.log(`[CORTEX] Extraction attempt on ${currentPlatform.name}: Found ${allNodes.length} nodes`);
 
   if (allNodes.length === 0) {
-    console.warn("[CORTEX] Extraction aborted: No conversation messages found with current selectors.");
-    return { ok: false, error: "No messages found. Try refreshing the page." };
+    console.warn(`[CORTEX] Extraction aborted: No conversation messages found on ${currentPlatform.name}.`);
+    return { ok: false, error: `No messages found on ${currentPlatform.name}. The UI might have updated.` };
   }
 
   const lines = [];
@@ -202,12 +220,16 @@ async function extractConversation() {
     chatTitle = `${currentPlatform.name} Chat (${new Date().toLocaleTimeString()})`;
   }
 
-  const ok = await postExtract(currentPlatform.id, text, chatTitle);
-  if (ok) {
-    showToast(`✓ Extracted: ${chatTitle}`);
-    return { ok: true, count: lines.length };
-  } else {
-    return { ok: false, error: "Server error. Is the backend running?" };
+    const ok = await postExtract(currentPlatform.id, text, chatTitle);
+    if (ok) {
+      showToast(`✓ Extracted: ${chatTitle}`);
+      return { ok: true, count: lines.length };
+    } else {
+      return { ok: false, error: "Backend error. Is CORTEX running?" };
+    }
+  } catch (err) {
+    console.error("[CORTEX] Extraction failed:", err);
+    return { ok: false, error: err.message || "Internal error during extraction" };
   }
 }
 

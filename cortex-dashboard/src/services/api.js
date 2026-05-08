@@ -14,7 +14,26 @@ export const api = {
       const response = await fetch(`${BASE_URL}/vault/export`);
       if (!response.ok) throw new Error('Failed to fetch vault');
       const data = await response.json();
-      return data.vault; // Return the actual vault object
+      const vault = data.vault;
+
+      // Transform conflicts if they exist
+      if (vault.conflicts && vault.conflicts.conflicts) {
+        vault.realConflicts = vault.conflicts.conflicts.map(c => ({
+          id: c.id,
+          field: c.topic,
+          severity: c.severity > 0.7 ? 'high' : c.severity > 0.4 ? 'medium' : 'low',
+          aiA: c.beliefs[0]?.ai || 'AI A',
+          aiB: c.beliefs[1]?.ai || 'AI B',
+          valueA: c.beliefs[0]?.statement || '',
+          valueB: c.beliefs[1]?.statement || '',
+          suggestion: c.explanation || 'Review the conflict and choose the correct value.',
+          status: c.status
+        }));
+      } else {
+        vault.realConflicts = [];
+      }
+
+      return vault; 
     } catch (error) {
       console.warn('API Error: Falling back to mock data.', error);
       return null;

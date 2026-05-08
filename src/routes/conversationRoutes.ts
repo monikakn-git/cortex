@@ -41,10 +41,9 @@ function saveStore(store: ConversationsStore): void {
  * Uses first 500 chars + message count to create a fingerprint.
  */
 export function hashConversation(content: string): string {
-  const snippet = content.slice(0, 500);
   let hash = 0;
-  for (let i = 0; i < snippet.length; i++) {
-    const chr = snippet.charCodeAt(i);
+  for (let i = 0; i < content.length; i++) {
+    const chr = content.charCodeAt(i);
     hash = ((hash << 5) - hash) + chr;
     hash |= 0; // Convert to 32bit integer
   }

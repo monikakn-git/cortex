@@ -1,14 +1,9 @@
-// src/skills/conflict-detector.ts — Conflict detection skill implementation
 import { Belief } from '../context-loader';
 
 export interface Conflict {
   id: string;
   topic: string;
-  beliefs: {
-    ai: string;
-    statement: string;
-    confidence: number;
-  }[];
+  beliefs: Belief[];
   severity: number;
   type: 'technology' | 'approach' | 'constraint' | 'priority' | 'tool';
   explanation: string;
@@ -34,37 +29,45 @@ const CONTRADICTION_PATTERNS: [string, string][] = [
 const OPPOSITE_PAIRS: [string, string][] = [
   ['openclaw', 'langchain'],
   ['typescript', 'javascript'],
+  ['ts', 'js'],
   ['local', 'cloud'],
   ['docker', 'serverless'],
+  ['sql', 'nosql'],
+  ['postgres', 'mongodb'],
+  ['react', 'vue'],
+  ['angular', 'react'],
+  ['tailwind', 'bootstrap'],
   ['prefer', 'avoid'],
   ['use', 'skip'],
   ['yes', 'no'],
   ['true', 'false'],
 ];
 
-export function detectConflicts(beliefs: Belief[]): Conflict[] {
+const SEMANTIC_KEYWORDS = [
+  'typescript', 'javascript', 'python', 'java', 'rust', 'go',
+  'backend', 'frontend', 'database', 'auth', 'deployment',
+  'react', 'vue', 'nextjs', 'node', 'express', 'fastapi'
+];
+
+export function detectConflicts(beliefs: Belief[], severityThreshold: number = 0.5): Conflict[] {
   const conflicts: Conflict[] = [];
   
-  // Group beliefs by topic
-  const byTopic = groupBeliefsByTopic(beliefs);
-  
-  // Compare beliefs within each topic
-  for (const [topic, topicBeliefs] of Object.entries(byTopic)) {
-    if (topicBeliefs.length < 2) continue;
-    
-    // Compare each pair
-    for (let i = 0; i < topicBeliefs.length; i++) {
-      for (let j = i + 1; j < topicBeliefs.length; j++) {
-        const beliefA = topicBeliefs[i];
-        const beliefB = topicBeliefs[j];
-        
-        // Skip same AI
-        if (beliefA.ai === beliefB.ai) continue;
-        
-        const conflict = checkForConflict(beliefA, beliefB, topic);
-        if (conflict) {
-          conflicts.push(conflict);
-        }
+  // Compare all pairs across different AIs
+  for (let i = 0; i < beliefs.length; i++) {
+    for (let j = i + 1; j < beliefs.length; j++) {
+      const beliefA = beliefs[i];
+      const beliefB = beliefs[j];
+      
+      // Only compare different AI platforms
+      if (beliefA.ai === beliefB.ai) continue;
+      
+      // Check if they share a common subject (keywords) or topic
+      const shareSubject = shareCommonSubject(beliefA, beliefB);
+      if (!shareSubject) continue;
+
+      const conflict = checkForConflict(beliefA, beliefB, shareSubject);
+      if (conflict && conflict.severity >= severityThreshold) {
+        conflicts.push(conflict);
       }
     }
   }
@@ -72,18 +75,33 @@ export function detectConflicts(beliefs: Belief[]): Conflict[] {
   return conflicts;
 }
 
-function groupBeliefsByTopic(beliefs: Belief[]): Record<string, Belief[]> {
-  const byTopic: Record<string, Belief[]> = {};
-  
-  for (const belief of beliefs) {
-    const topic = belief.topic || 'general';
-    if (!byTopic[topic]) {
-      byTopic[topic] = [];
-    }
-    byTopic[topic].push(belief);
+function shareCommonSubject(a: Belief, b: Belief): string | null {
+  const stmtA = a.statement.toLowerCase();
+  const stmtB = b.statement.toLowerCase();
+
+  // 1. Direct topic match
+  if (a.topic === b.topic && a.topic !== 'preference' && a.topic !== 'goal' && a.topic !== 'general') {
+    return a.topic;
   }
-  
-  return byTopic;
+
+  // 2. Keyword overlap
+  for (const kw of SEMANTIC_KEYWORDS) {
+    if (stmtA.includes(kw) && stmtB.includes(kw)) return kw;
+  }
+
+  // 3. Opposite pair overlap
+  for (const [w1, w2] of OPPOSITE_PAIRS) {
+    if ((stmtA.includes(wordBoundary(w1)) && stmtB.includes(wordBoundary(w2))) ||
+        (stmtA.includes(wordBoundary(w2)) && stmtB.includes(wordBoundary(w1)))) {
+      return `${w1}_vs_${w2}`;
+    }
+  }
+
+  return null;
+}
+
+function wordBoundary(word: string): string {
+  return word; // Simple for now
 }
 
 function checkForConflict(
@@ -127,12 +145,9 @@ function hasContradiction(
 }
 
 function hasSemanticContradiction(stmtA: string, stmtB: string): boolean {
-  const wordsA = new Set(stmtA.split(/\s+/));
-  const wordsB = new Set(stmtB.split(/\s+/));
-  
   for (const [word1, word2] of OPPOSITE_PAIRS) {
-    if (wordsA.has(word1) && wordsB.has(word2)) return true;
-    if (wordsA.has(word2) && wordsB.has(word1)) return true;
+    if (stmtA.includes(word1) && stmtB.includes(word2)) return true;
+    if (stmtA.includes(word2) && stmtB.includes(word1)) return true;
   }
   
   return false;
@@ -181,10 +196,7 @@ function createConflict(
   return {
     id: generateConflictId(),
     topic,
-    beliefs: [
-      { ai: a.ai, statement: a.statement, confidence: a.confidence },
-      { ai: b.ai, statement: b.statement, confidence: b.confidence },
-    ],
+    beliefs: [a, b],
     severity,
     type,
     explanation: `${a.ai} says "${a.statement}" while ${b.ai} says "${b.statement}"`,

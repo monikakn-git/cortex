@@ -4,9 +4,72 @@ import { Context, Belief } from './context-loader';
 export function extractBeliefs(context: Context): Belief[] {
   const beliefs: Belief[] = [];
   
-  // TODO: Integrate with LLM (LangChain) for real extraction
-  // For now, extract from summary if available
-  
+  // 1. Process explicit signals if available
+  if (context.signals) {
+    const { preferences, goals, beliefs: existingBeliefs, tool_usage, constraints } = context.signals;
+
+    // Convert preferences to beliefs
+    for (const p of preferences) {
+      beliefs.push({
+        id: generateBeliefId(),
+        topic: 'preference',
+        statement: p.preference,
+        confidence: 0.8,
+        ai: context.ai,
+        timestamp: context.date || new Date().toISOString(),
+      });
+    }
+
+    // Convert goals to beliefs
+    for (const g of goals) {
+      beliefs.push({
+        id: generateBeliefId(),
+        topic: 'goal',
+        statement: g.goal,
+        confidence: 0.7,
+        ai: context.ai,
+        timestamp: context.date || new Date().toISOString(),
+      });
+    }
+
+    // Convert tool usage to beliefs
+    for (const t of tool_usage) {
+      beliefs.push({
+        id: generateBeliefId(),
+        topic: 'tool',
+        statement: `${t.tool_name} (${t.usage_context})`,
+        confidence: t.recommendation_strength === 'strong' ? 0.9 : 0.7,
+        ai: context.ai,
+        timestamp: context.date || new Date().toISOString(),
+      });
+    }
+
+    // Convert constraints to beliefs
+    for (const c of constraints) {
+      beliefs.push({
+        id: generateBeliefId(),
+        topic: 'constraint',
+        statement: c.description,
+        confidence: c.type === 'hard' ? 1.0 : 0.8,
+        ai: context.ai,
+        timestamp: context.date || new Date().toISOString(),
+      });
+    }
+
+    // Add existing beliefs
+    for (const b of existingBeliefs) {
+      beliefs.push({
+        id: generateBeliefId(),
+        topic: b.topic || 'general',
+        statement: b.statement,
+        confidence: b.confidence || 0.6,
+        ai: context.ai,
+        timestamp: context.date || new Date().toISOString(),
+      });
+    }
+  }
+
+  // 2. Fallback to summary if no signals or to supplement
   if (context.summary) {
     // Simple keyword-based extraction (placeholder)
     // In production, use LLM to analyze the full conversation

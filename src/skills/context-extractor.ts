@@ -193,13 +193,19 @@ export async function extractSignals(
         const val = match[1].trim();
         const source = `Line ${index + 1}`;
 
-        if (p.type === 'preferences') {
+        // Basic deduplication: don't add if very similar to existing signal of same type
+        const isDuplicate = (list: any[]) => list.some(item => 
+          (item.value || item.goal || item.tool_name || item.description || "").toLowerCase().includes(val.toLowerCase()) ||
+          val.toLowerCase().includes((item.value || item.goal || item.tool_name || item.description || "").toLowerCase())
+        );
+
+        if (p.type === 'preferences' && !isDuplicate(signals.preferences)) {
           signals.preferences.push({ type: 'stated', key: p.key!, value: val, confidence: 0.9, source });
-        } else if (p.type === 'goals') {
+        } else if (p.type === 'goals' && !isDuplicate(signals.goals)) {
           signals.goals.push({ goal: val, status: 'active', source });
-        } else if (p.type === 'tool_usage') {
+        } else if (p.type === 'tool_usage' && !isDuplicate(signals.tool_usage)) {
           signals.tool_usage.push({ tool_name: val, usage_context: line.trim(), recommendation_strength: 'strong' });
-        } else if (p.type === 'constraints') {
+        } else if (p.type === 'constraints' && !isDuplicate(signals.constraints)) {
           signals.constraints.push({ type: 'hard', description: val, source });
         }
       }

@@ -16,7 +16,7 @@ export default function Dashboard() {
   const [vaultData, setVaultData] = useState({ nodes: [], edges: [] });
   const [stats, setStats] = useState([
     { icon: Database, label: 'Total Nodes', val: 0, color: 'var(--accent-primary)', sub: 'Syncing...' },
-    { icon: GitMerge, label: 'Active Conflicts', val: 0, color: 'var(--accent-success)', sub: 'Clean vault' },
+    { icon: GitMerge, label: 'Active Conflicts', val: 0, color: '#ff4d6a', sub: 'Scanning...' },
     { icon: ShieldCheck, label: 'Vault Coverage', val: '0%', color: 'var(--accent-secondary)', sub: 'Initializing...' },
   ]);
 
@@ -33,7 +33,7 @@ export default function Dashboard() {
         // Refresh vault to update graph node label
         const vault = await api.getVault();
         const updatedNodes = vaultData.nodes.map(n => 
-          n.id === 'john_doe' ? { ...n, label: res.name } : n
+          n.id === 'identity_root' ? { ...n, label: res.name } : n
         );
         setVaultData(v => ({ ...v, nodes: updatedNodes }));
       }
@@ -50,21 +50,46 @@ export default function Dashboard() {
       const nodes = [];
       const edges = [];
 
+      const addNode = (node) => {
+        if (!nodes.find(n => n.id === node.id)) {
+          nodes.push(node);
+        }
+      };
+
+      const addEdge = (edge) => {
+        if (!edges.find(e => e.source === edge.source && e.target === edge.target)) {
+          edges.push(edge);
+        }
+      };
+
       const currentName = vault?.soul?.user?.name || 'User';
       setUserName(currentName);
 
-      // Add Central Identity Node (Target for "F" key)
-      nodes.push({ 
-        id: 'john_doe', 
+      // Add Central Identity Node
+      addNode({ 
+        id: 'identity_root', 
         label: currentName, 
         category: 'identity', 
         conflict: false,
         detail: 'Central Identity Node'
       });
 
-      // 1. Add Conversation Nodes
+      // 1. Add Platform Nodes & Link to Identity
+      const platforms = ['chatgpt', 'claude', 'gemini', 'copilot'];
+      platforms.forEach(p => {
+        addNode({
+          id: `platform_${p}`,
+          label: p.charAt(0).toUpperCase() + p.slice(1),
+          category: 'context',
+          ai: [p],
+          detail: `${p.charAt(0).toUpperCase() + p.slice(1)} Hub`
+        });
+        addEdge({ source: 'identity_root', target: `platform_${p}` });
+      });
+
+      // 2. Add Conversation Nodes & Link to Platform Nodes
       (conversations || []).forEach(c => {
-        nodes.push({
+        addNode({
           id: c.id,
           label: c.title || `${c.platform.toUpperCase()} Chat`,
           category: 'context',
@@ -72,46 +97,23 @@ export default function Dashboard() {
           conflict: false,
           detail: c.preview
         });
-        // Link everything to central node
-        edges.push({ source: 'john_doe', target: c.id });
+        addEdge({ source: `platform_${c.platform}`, target: c.id });
       });
 
-      // 2. Add Signal Nodes from Vault
+      // 3. Signal Nodes (Removed per user request to avoid duplicates/clutter)
+      /*
       if (vault) {
-        Object.entries(vault).forEach(([key, data]) => {
-          if (key.endsWith('-contexts') && data.contexts) {
-            data.contexts.forEach((ctx, ctxIdx) => {
-              const platform = key.split('-')[0];
-              // Find matching conversation for edge
-              const conv = (conversations || []).find(c => 
-                Math.abs(new Date(c.extracted_at).getTime() - new Date(ctx.extracted_at).getTime()) < 5000
-              );
-
-              // Add nodes for each signal type
-              if (ctx.signals.preferences) {
-                ctx.signals.preferences.forEach((p, i) => {
-                  const nodeId = `${platform}_pref_${ctxIdx}_${i}`;
-                  nodes.push({ id: nodeId, label: p.value, category: 'preference', ai: [platform], detail: p.key });
-                  if (conv) edges.push({ source: conv.id, target: nodeId });
-                });
-              }
-              if (ctx.signals.goals) {
-                ctx.signals.goals.forEach((g, i) => {
-                  const nodeId = `${platform}_goal_${ctxIdx}_${i}`;
-                  nodes.push({ id: nodeId, label: g.goal, category: 'project', ai: [platform], detail: g.status });
-                  if (conv) edges.push({ source: conv.id, target: nodeId });
-                });
-              }
-            });
-          }
-        });
+        ...
       }
+      */
 
       setVaultData({ nodes, edges });
       
+      const pendingConflicts = (vault?.realConflicts || []).filter(c => c.status === 'pending');
+
       setStats([
         { icon: Database, label: 'Total Nodes', val: nodes.length, color: 'var(--accent-primary)', sub: 'From real extractions' },
-        { icon: GitMerge, label: 'Active Conflicts', val: 0, color: 'var(--accent-success)', sub: 'Clean vault' },
+        { icon: GitMerge, label: 'Active Conflicts', val: pendingConflicts.length, color: pendingConflicts.length > 0 ? '#ff4d6a' : 'var(--accent-success)', sub: pendingConflicts.length > 0 ? 'Action required' : 'Clean vault' },
         { icon: ShieldCheck, label: 'Vault Coverage', val: nodes.length > 0 ? '100%' : '0%', color: 'var(--accent-secondary)', sub: 'Live sync' },
       ]);
     };

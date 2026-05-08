@@ -62,7 +62,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
 
     // Focusing Function (Reset to Center / Identity)
     const focusOnIdentity = () => {
-      const identityNode = nodeData.find(n => n.id === 'john_doe');
+      const identityNode = nodeData.find(n => n.id === 'identity_root');
       if (!identityNode) return;
       
       const scale = 1.2;
@@ -110,7 +110,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       .on('mouseenter', (e, d) => {
         d3.select(e.currentTarget).select('.node-circle')
           .transition().duration(200)
-          .attr('r', d.id === 'john_doe' ? 30 : 22)
+          .attr('r', d.id === 'identity_root' ? 30 : 22)
           .attr('stroke-width', 5);
         d3.select(e.currentTarget).select('.node-label')
           .transition().duration(200)
@@ -120,7 +120,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       .on('mouseleave', (e, d) => {
         d3.select(e.currentTarget).select('.node-circle')
           .transition().duration(200)
-          .attr('r', d.id === 'john_doe' ? 24 : 18)
+          .attr('r', d.id === 'identity_root' ? 24 : 18)
           .attr('stroke-width', 3);
         d3.select(e.currentTarget).select('.node-label')
           .transition().duration(200)
@@ -143,14 +143,14 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
 
     node.append('circle')
       .attr('class', 'node-circle')
-      .attr('r', d => (d.id === 'john_doe' ? 24 : 18))
+      .attr('r', d => (d.id === 'identity_root' ? 24 : 18))
       .attr('fill', '#0a0a0f')
       .attr('stroke', d => categoryColors[d.category] || '#7c6aff')
       .attr('stroke-width', 3)
       .attr('filter', d => `url(#glow-${d.category.toLowerCase()})`);
 
     // Heartbeat Pulse for Identity
-    node.filter(d => d.id === 'john_doe')
+    node.filter(d => d.id === 'identity_root')
       .append('circle')
       .attr('r', 24)
       .attr('fill', 'none')
@@ -159,7 +159,7 @@ export default function KnowledgeGraph({ nodes, edges, onNodeClick }) {
       .attr('class', 'pulse-circle');
 
     node.append('circle')
-      .attr('r', d => (d.id === 'john_doe' ? 10 : 8))
+      .attr('r', d => (d.id === 'identity_root' ? 10 : 8))
       .attr('fill', d => categoryColors[d.category] || '#7c6aff');
 
     node.append('text')
